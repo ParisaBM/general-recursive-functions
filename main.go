@@ -27,7 +27,7 @@ func scan(s []byte) {
 		//next the beginning of comments is handled
 		} else if expect_slash {
 			if s[i] == '/' {
-				fmt.Println("found comment")
+				fmt.Println("comment")
 				comment = true
 				expect_slash = false
 			} else {
@@ -36,6 +36,15 @@ func scan(s []byte) {
 			}
 		} else if s[i] == '/' {
 			expect_slash = true
+		//next special symbols are found
+		} else if s[i] == '(' {
+			fmt.Println("open bracket")
+		} else if s[i] == ')' {
+			fmt.Println("close bracket")
+		} else if s[i] == '=' {
+			fmt.Println("equals")
+		} else if s[i] == ',' {
+			fmt.Println("comma")
 		}
 	}
 }
