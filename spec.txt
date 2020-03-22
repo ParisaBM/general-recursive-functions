@@ -3,7 +3,7 @@ A program defines a function whose inputs are a list of natural numbers of fixed
 Function defintion has the form:
 Identifier = Function
 
-An identifier is a sequence of alphabetic characters.
+An identifier is a sequence of alphabetic characters, digits, and underscores. The first character cannot be a digit.
 
 A function is a recursive expression that can be one of the following:
 
