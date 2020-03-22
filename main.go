@@ -41,10 +41,12 @@ func scan(s []byte) {
 		//this loop is divided into 2 parts
 		//first all the cases where one of the boolean flags is set are handled\
 		//otherwise the scanner is between tokens and it reads the character to determine how to proceed
-
+		
+		//here is the first section, where flags are checked
 		if comment {
 			if s[i] == '\n' {
 				comment = false
+				i--
 			}
 		} else if expect_slash {
 			if s[i] == '/' {
@@ -58,6 +60,9 @@ func scan(s []byte) {
 		} else if constant {
 			if is_digit(s[i]) {
 				const_buffer = (const_buffer*10)+s[i]-'0'
+			} else if is_alphabetic(s[i]) || s[i] == '_' {
+				fmt.Println("bad identifier")
+				return
 			} else {
 				fmt.Println("found constant:")
 				fmt.Println(const_buffer)
@@ -75,6 +80,7 @@ func scan(s []byte) {
 				identifier = false
 				i--
 			}
+		//here is the second section, where different symbols are handled
 		} else if is_alphabetic(s[i]) || s[i]=='_' {
 			id_buffer = append(id_buffer, s[i])
 			identifier = true
@@ -83,7 +89,6 @@ func scan(s []byte) {
 			constant = true
 		} else if s[i] == '/' {
 			expect_slash = true
-		//next special symbols are found
 		} else if s[i] == '(' {
 			fmt.Println("open bracket")
 		} else if s[i] == ')' {
@@ -92,8 +97,9 @@ func scan(s []byte) {
 			fmt.Println("equals")
 		} else if s[i] == ',' {
 			fmt.Println("comma")
-		//any other symbols are a syntax error
-		} else if s[i] != ' ' && s[i] != '\n' {
+		} else if s[i] == '\n' {
+			fmt.Println("line break")
+		} else if s[i] != ' ' {
 			fmt.Println("invalid symbol ", s[i])
 			return
 		}
