@@ -26,4 +26,6 @@ Comments begin // and continue until the end of the line.
 
 Spaces can be used as token seperators, but are ignored otherwise.
 
+All errors are given with a description, and a line number. Only the first error found is generated.
+
 Look at lcm.grf for an example program.
