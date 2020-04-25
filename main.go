@@ -56,7 +56,7 @@ func main() {
 	for {
 		c := <- p_to_t
 		fmt.Println(c)
-		if c==end {
+		if c == end {
 			break
 		}
 	}
