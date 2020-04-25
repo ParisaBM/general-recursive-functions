@@ -94,7 +94,7 @@ L:
 		case identifier:
 			//how to handle an identifier depends whether we're in an expression or not
 			//we're in an expression if the stack is non-empty
-			if len(arity_stack)==0 {
+			if len(arity_stack) == 0 {
 				id = <-p_to_t
 				//we check id hasn't already been defined
 				_, ok := arity_table[id]
@@ -102,11 +102,11 @@ L:
 					fmt.Println("double definition")
 				}
 			} else {
-				n, ok := arity_table[<- p_to_t]
+				n, ok := arity_table[<-p_to_t]
 				if !ok {
 					fmt.Println("unknown identifier")
 				}
-				arity_stack=append(arity_stack, Arity{n, true})
+				arity_stack = append(arity_stack, Arity{n, true})
 			}
 		case end:
 			break L
@@ -123,7 +123,7 @@ L:
 			}
 			arity_stack = append(arity_stack, Arity{m, true})
 		case comp:
-			n := <- p_to_t
+			n := <-p_to_t
 			for i := byte(0); i < n-1; i++ {
 				//this loops merges the top 2 items n-1 times
 				arity_stack = append(arity_stack[:len(arity_stack)-2],

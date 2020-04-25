@@ -49,5 +49,5 @@ func main() {
 	go scan(string(file))
 	go parse()
 	go semantic()
-	<- t_to_c
+	<-t_to_c
 }
