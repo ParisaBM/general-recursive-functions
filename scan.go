@@ -2,6 +2,15 @@ package main
 
 import "fmt"
 
+func is_alphabetic(c byte) bool {
+	//returns true if the input is a letter and false otherwise
+	return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
+}
+
+func is_digit(c byte) bool {
+	return '0' <= c && c <= '9'
+}
+
 func scan(s string) {
 	//reads the inputs one byte at a time and emits what it finds
 	//scanner flags are named as: X_f
@@ -13,7 +22,6 @@ func scan(s string) {
 	//expected_slash is true if a slash was just read
 	expect_slash_f := false
 
-
 	//if the scanner is within a constant, then constant_fs is true, and const buffer saves the result
 	constant_f := false
 	var constant_buffer byte = 0
@@ -21,17 +29,17 @@ func scan(s string) {
 	//identifiers are treated likewise
 	identifier_f := false
 	id_buffer := ""
-	
+
 	//the name table is used in screening, it maps each user defined function name to a unique integer
 	name_table := make(map[string]byte)
-	name_table["main"]=0
+	name_table["main"] = 0
 	for i := 0; i < len(s); i++ {
 		//anywhere there is an i-- this means the character is not consumed
 
 		//this loop is divided into 2 parts
 		//first all the cases where one of the boolean flags is set are handled\
 		//otherwise the scanner is between tokens and it reads the character to determine how to proceed
-		
+
 		//here is the first section, where flags are checked
 		if comment_f {
 			if s[i] == '\n' {
@@ -49,7 +57,7 @@ func scan(s string) {
 			}
 		} else if constant_f {
 			if is_digit(s[i]) {
-				constant_buffer = (constant_buffer*10)+s[i]-'0'
+				constant_buffer = (constant_buffer * 10) + s[i] - '0'
 			} else if is_alphabetic(s[i]) || s[i] == '_' {
 				fmt.Println("error: bad identifier")
 				s_to_p <- err
@@ -67,17 +75,17 @@ func scan(s string) {
 			} else {
 				//fist the identifier is compared agains all the keywords
 				//main for our purposes is a keyword
-				if id_buffer=="suc" {
+				if id_buffer == "suc" {
 					s_to_p <- suc
-				} else if id_buffer=="proj" {
+				} else if id_buffer == "proj" {
 					s_to_p <- proj
-				} else if id_buffer=="rec" {
+				} else if id_buffer == "rec" {
 					s_to_p <- rec
-				} else if id_buffer=="comp" {
+				} else if id_buffer == "comp" {
 					s_to_p <- comp
-				} else if id_buffer=="min" {
+				} else if id_buffer == "min" {
 					s_to_p <- min
-				//if it is not a keyword, we handle it using the name_table
+					//if it is not a keyword, we handle it using the name_table
 				} else {
 					s_to_p <- identifier
 					n, ok := name_table[id_buffer]
@@ -86,19 +94,19 @@ func scan(s string) {
 						//we assign the size of the table to the new identifier
 						//this will always result in unique values
 						n = byte(len(name_table))
-						name_table[id_buffer]=n
+						name_table[id_buffer] = n
 					}
 					s_to_p <- n
 				}
 				identifier_f = false
 				i--
 			}
-		//here is the second section, where different symbols are handled
-		} else if is_alphabetic(s[i]) || s[i]=='_' {
+			//here is the second section, where different symbols are handled
+		} else if is_alphabetic(s[i]) || s[i] == '_' {
 			id_buffer = string(s[i])
 			identifier_f = true
 		} else if is_digit(s[i]) {
-			constant_buffer = s[i]-'0'
+			constant_buffer = s[i] - '0'
 			constant_f = true
 		} else if s[i] == '/' {
 			expect_slash_f = true

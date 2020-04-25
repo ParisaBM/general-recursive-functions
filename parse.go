@@ -6,17 +6,20 @@ func parse() {
 	//the syntax of this language is highly regular
 	//each line consists of code contains a definition
 	//each iteration of this loop consumes one definition or a blank line, or the end of the file
-	L: for {
-		switch <- s_to_p {
+L:
+	for {
+		switch <-s_to_p {
 		case identifier:
 			//the general case is: identifer id equals function newline
-			//the identifier tag is deleted as every line starts with an identifier
-			p_to_t <- <- s_to_p
+			p_to_t <- identifier
+			p_to_t <- <-s_to_p
 			expect(equals)
 			function()
-			p_to_t <- equals
 			expect(newline)
+			p_to_t <- equals
+			p_to_t <- newline
 		case newline:
+			p_to_t <- newline
 		case end:
 			break L
 		default:
@@ -32,21 +35,21 @@ func function() {
 	//a function can be one of the primitives: suc, constant, proj
 	//one of the operators: comp, min, rec
 	//an identifer or a function enclosed in unnecessary brackets
-	switch <- s_to_p {
+	switch <-s_to_p {
 	//suc and constant are unchanged
 	case suc:
 		p_to_t <- suc
 	case constant:
 		p_to_t <- constant
-		p_to_t <- <- s_to_p
+		p_to_t <- <-s_to_p
 	//the constant tags after proj are deleted from the stream
 	//this is because they are redundant
 	case proj:
 		p_to_t <- proj
 		expect(constant)
-		p_to_t <- <- s_to_p
+		p_to_t <- <-s_to_p
 		expect(constant)
-		p_to_t <- <- s_to_p
+		p_to_t <- <-s_to_p
 	//comp expects a comma seperated list of atleast one function in brackets
 	case comp:
 		expect(open_paren)
@@ -54,8 +57,9 @@ func function() {
 		//a composition is emitted with its arity so the sematic analyzer can deduce
 		//how many functions are being composed together
 		var arity byte = 0
-		L: for { //this loop consumes all addition functions
-			switch <- s_to_p {
+	L:
+		for { //this loop consumes all addition functions
+			switch <-s_to_p {
 			//if there's a comma there's an addition function
 			case comma:
 				function()
@@ -86,7 +90,7 @@ func function() {
 	//identifiers are unchanged
 	case identifier:
 		p_to_t <- identifier
-		p_to_t <- <- s_to_p
+		p_to_t <- <-s_to_p
 	//this is the case of useless brackets
 	case open_paren:
 		function()
@@ -97,7 +101,7 @@ func function() {
 func expect(b byte) {
 	//expect consumes a single value from the input stream
 	//making sure it's value is the one given as the function parameter
-	if <- s_to_p != b {
+	if <-s_to_p != b {
 		fmt.Println("error")
 	}
 }
