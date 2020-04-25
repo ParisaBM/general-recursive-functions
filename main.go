@@ -20,14 +20,14 @@ func is_digit(c byte) bool {
 
 const (
 	//scanner signals
-	identifier = iota
-	equals = iota
 	constant = iota
 	suc = iota
 	proj = iota
-	rec = iota
 	comp = iota
 	min = iota
+	rec = iota
+	identifier = iota
+	equals = iota
 	open_paren = iota
 	close_paren = iota
 	comma = iota
@@ -35,6 +35,9 @@ const (
 	err = iota
 	end = iota
 )
+
+var s_to_p chan byte
+var p_to_t chan byte
 
 func main() {
 	//this program will sometimes be run as its executable, and sometimes with go run
@@ -46,10 +49,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s_to_p := make(chan byte)
-	p_to_t := make(chan byte)
-	go scan(string(file), s_to_p)
-	go parse(s_to_p, p_to_t)
+	s_to_p = make(chan byte)
+	p_to_t = make(chan byte)
+	go scan(string(file))
+	go parse()
 	for {
 		c := <- p_to_t
 		fmt.Println(c)

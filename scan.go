@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func scan(s string, s_to_p chan byte) {
+func scan(s string) {
 	//reads the inputs one byte at a time and emits what it finds
 	//scanner flags are named as: X_f
 
