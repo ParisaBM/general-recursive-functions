@@ -52,6 +52,7 @@ func function() {
 		p_to_t <- <-s_to_p
 	//comp expects a comma seperated list of atleast one function in brackets
 	case comp:
+		p_to_t <- prefix_comp
 		expect(open_paren)
 		function() //this is the first function
 		//a composition is emitted with its arity so the sematic analyzer can deduce
@@ -75,12 +76,14 @@ func function() {
 		p_to_t <- arity
 	//min expects a function enclosed in brackets
 	case min:
+		p_to_t <- prefix_min
 		expect(open_paren)
 		function()
 		expect(close_paren)
 		p_to_t <- min
 	//rec expects 2 funtions enclosed in brackets
 	case rec:
+		p_to_t <- prefix_rec
 		expect(open_paren)
 		function()
 		expect(comma)

@@ -12,6 +12,7 @@ import (
 
 //these are the signals the phases use to communicate with one another
 const (
+	//scanner and parser tokens
 	constant    = iota
 	suc         = iota
 	proj        = iota
@@ -20,19 +21,26 @@ const (
 	rec         = iota
 	identifier  = iota
 	equals      = iota
-	open_paren  = iota
-	close_paren = iota
-	comma       = iota
 	newline     = iota
 	err         = iota
 	end         = iota
+	//scanner_tokens
+	open_paren  = iota
+	close_paren = iota
+	comma       = iota
+	//parser tokens
+	prefix_comp = iota
+	prefix_min  = iota
+	prefix_rec  = iota
+	//representation token
+	none        = iota
 )
 
 //these are the channels the phases use to communicate with one another
 //s=scanner, p=parser, t=semantic, c=code_gen
 var s_to_p chan int8
 var p_to_t chan int8
-var t_to_c chan int8
+var t_to_r chan int8
 
 func main() {
 	//it is beyond the scope of this project to support multi-file codebases
@@ -59,7 +67,7 @@ func main() {
 	//next we initialize the channels
 	s_to_p = make(chan int8)
 	p_to_t = make(chan int8)
-	t_to_c = make(chan int8)
+	t_to_r = make(chan int8)
 	//then we begin the phases
 	if n >= 0 {
 		go scan(string(file))
@@ -73,7 +81,7 @@ func main() {
 	if n != 2 {
 		debug(n)
 	} else {
-		<-t_to_c
+		<- t_to_r
 	}
 }
 

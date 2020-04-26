@@ -87,6 +87,10 @@ func semantic() {
 	//id is the numeric identifier of the function being defined
 	//it is -1 before an assignment is made
 	var id int8 = -1
+	//the previous phases were all able to emit output as it was generated
+	//the semantic phase must add arity annotations to the start of each line
+	//thus the output must be buffered until then
+	buffer := make([]int8, 0)
 L:
 	for {
 		switch <-p_to_t {
@@ -94,12 +98,14 @@ L:
 			//how to handle an identifier depends whether we're in an expression or not
 			//we're in an expression if the stack is non-empty
 			if id == -1 {
-				id = <-p_to_t
+				id = <- p_to_t
 				//we check id hasn't already been defined
 				_, ok := arity_table[id]
 				if ok {
 					fmt.Println("double definition")
 				}
+				t_to_r <- identifier
+				t_to_r <- id
 			} else {
 				n, ok := arity_table[<-p_to_t]
 				if !ok {
@@ -110,10 +116,11 @@ L:
 		case end:
 			break L
 		case constant:
-			<-p_to_t
 			arity_stack = append(arity_stack, Arity{0, false})
+			buffer = append(buffer, constant, <- p_to_t)
 		case suc:
 			arity_stack = append(arity_stack, Arity{1, true})
+			buffer = append(buffer, suc)
 		case proj:
 			n := <-p_to_t
 			m := <-p_to_t
@@ -121,6 +128,8 @@ L:
 				fmt.Println("bad arity")
 			}
 			arity_stack = append(arity_stack, Arity{m, true})
+			//m is not needed in the next phase
+			buffer = append(buffer, proj, n)
 		case comp:
 			n := <-p_to_t
 			for i := int8(0); i < n-1; i++ {
@@ -131,6 +140,8 @@ L:
 			//then we make sure the second from top arity is compatible with n, then delete it
 			merge(arity_stack[len(arity_stack)-2], Arity{n, true})
 			arity_stack = append(arity_stack[:len(arity_stack)-2], arity_stack[len(arity_stack)-1])
+			//note how comp, but neither of the other postfix operators are kept in the output stream
+			buffer = append(buffer, comp)
 		case min:
 			arity_stack[len(arity_stack)-1] = add(arity_stack[len(arity_stack)-1], -1)
 		case rec:
@@ -138,10 +149,24 @@ L:
 			arity_stack = append(arity_stack[:len(arity_stack)-2],
 				merge(add(arity_stack[len(arity_stack)-2], 1), add(arity_stack[len(arity_stack)-1], -1)))
 		case equals:
+			//pop the arity_stack and assign it to id
 			arity_table[id] = arity_stack[len(arity_stack)-1].arity
-			arity_stack = arity_stack[:len(arity_stack)-1]
+			t_to_r <- arity_table[id]
+			for i := buffer {
+				t_to_r <- buffer[i]
+			}
+			arity_stack = make([]int8, 0)
+			buffer = make([]int8, 0)
 			//reset the id variable
 			id = -1
+		//these tokens aren't meant for the semantic analyzer
+		//they get just get passed along to the representation phase
+		case prefix_comp:
+			buffer = append(buffer, prefix_comp)
+		case prefix_min:
+			buffer = append(buffer, prefix_min)
+		case prefix_rec:
+			buffer = append(buffer, prefix_rec)
 		}
 	}
 	_, ok := arity_table[0]
@@ -151,5 +176,5 @@ L:
 	for n, m := range arity_table {
 		fmt.Println(n, m)
 	}
-	t_to_c <- 0
+	t_to_r <- 0
 }
