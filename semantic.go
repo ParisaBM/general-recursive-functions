@@ -19,11 +19,11 @@ import "fmt"
 type Arity struct {
 	//Arity expresses what is know about the type of a function
 	//arity is the number that is either the lower bound or exact number
-	arity byte
+	arity int8
 	known bool
 }
 
-func max(x, y byte) byte {
+func max(x, y int8) int8 {
 	//used to merge two unknown Arities
 	if x > y {
 		return x
@@ -54,7 +54,7 @@ func merge(ar0, ar1 Arity) Arity {
 	}
 }
 
-func add(ar Arity, n byte) Arity {
+func add(ar Arity, n int8) Arity {
 	//adds n to an Arity, handles edge cases
 	//n might be negative
 	ar.arity += n
@@ -83,18 +83,17 @@ func semantic() {
 	arity_stack := make([]Arity, 0)
 	//once it is finished evaluating, if the arity is still unknow it is assumed to be the minimum
 	//the arity_table maps each identifier number to its arity, which requires ONLY A BYTE
-	arity_table := make(map[byte]byte)
-	//as main won't be defined until the end of the program, we set it to -1 as a placeholder
+	arity_table := make(map[int8]int8)
 	//id is the numeric identifier of the function being defined
-	var id byte
+	//it is -1 before an assignment is made
+	var id int8 = -1
 L:
 	for {
-		fmt.Println("iterate")
-		switch <-p_to_t {
+		switch <- p_to_t {
 		case identifier:
 			//how to handle an identifier depends whether we're in an expression or not
 			//we're in an expression if the stack is non-empty
-			if len(arity_stack) == 0 {
+			if id == -1 {
 				id = <-p_to_t
 				//we check id hasn't already been defined
 				_, ok := arity_table[id]
@@ -124,7 +123,7 @@ L:
 			arity_stack = append(arity_stack, Arity{m, true})
 		case comp:
 			n := <-p_to_t
-			for i := byte(0); i < n-1; i++ {
+			for i := int8(0); i < n-1; i++ {
 				//this loops merges the top 2 items n-1 times
 				arity_stack = append(arity_stack[:len(arity_stack)-2],
 					merge(arity_stack[len(arity_stack)-1], arity_stack[len(arity_stack)-2]))
@@ -133,19 +132,15 @@ L:
 			merge(arity_stack[len(arity_stack)-2], Arity{n, true})
 			arity_stack = append(arity_stack[:len(arity_stack)-2], arity_stack[len(arity_stack)-1])
 		case min:
-			if arity_stack[len(arity_stack)-1] == (Arity{0, true}) {
-				fmt.Println("min of niladic function")
-			} else if arity_stack[len(arity_stack)-1].arity > 0 {
-				arity_stack[len(arity_stack)-1].arity--
-			}
+			arity_stack[len(arity_stack)-1] = add(arity_stack[len(arity_stack)-1], -1)
 		case rec:
-			//first we check that the top two elements are compatible
-			merge(add(arity_stack[len(arity_stack)-2], 2), arity_stack[len(arity_stack)-1])
-			//then update the stack accordingly
-			arity_stack = append(arity_stack[:len(arity_stack)-2], add(arity_stack[len(arity_stack)-2], 1))
+			//this part is rather tricky, it must be exactly one more than the first operand, and one less than the second
+			arity_stack = append(arity_stack[:len(arity_stack)-2], merge(add(arity_stack[len(arity_stack)-2], 1), add(arity_stack[len(arity_stack)-1], -1)))
 		case equals:
 			arity_table[id] = arity_stack[len(arity_stack)-1].arity
 			arity_stack = arity_stack[:len(arity_stack)-1]
+			//reset the id variable
+			id = -1
 		}
 	}
 	_, ok := arity_table[0]

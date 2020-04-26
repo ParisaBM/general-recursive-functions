@@ -56,7 +56,7 @@ func function() {
 		function() //this is the first function
 		//a composition is emitted with its arity so the sematic analyzer can deduce
 		//how many functions are being composed together
-		var arity byte = 0
+		var arity int8 = 0
 	L:
 		for { //this loop consumes all addition functions
 			switch <-s_to_p {
@@ -98,7 +98,7 @@ func function() {
 	}
 }
 
-func expect(b byte) {
+func expect(b int8) {
 	//expect consumes a single value from the input stream
 	//making sure it's value is the one given as the function parameter
 	if <-s_to_p != b {

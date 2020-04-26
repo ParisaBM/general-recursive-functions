@@ -24,14 +24,14 @@ func scan(s string) {
 
 	//if the scanner is within a constant, then constant_fs is true, and const buffer saves the result
 	constant_f := false
-	var constant_buffer byte = 0
+	var constant_buffer int8 = 0
 
 	//identifiers are treated likewise
 	identifier_f := false
 	id_buffer := ""
 
 	//the name table is used in screening, it maps each user defined function name to a unique integer
-	name_table := make(map[string]byte)
+	name_table := make(map[string]int8)
 	name_table["main"] = 0
 	for i := 0; i < len(s); i++ {
 		//anywhere there is an i-- this means the character is not consumed
@@ -57,7 +57,7 @@ func scan(s string) {
 			}
 		} else if constant_f {
 			if is_digit(s[i]) {
-				constant_buffer = (constant_buffer * 10) + s[i] - '0'
+				constant_buffer = (constant_buffer * 10) + int8(s[i]) - '0'
 			} else if is_alphabetic(s[i]) || s[i] == '_' {
 				fmt.Println("error: bad identifier")
 				s_to_p <- err
@@ -93,7 +93,7 @@ func scan(s string) {
 					if !ok {
 						//we assign the size of the table to the new identifier
 						//this will always result in unique values
-						n = byte(len(name_table))
+						n = int8(len(name_table))
 						name_table[id_buffer] = n
 					}
 					s_to_p <- n
@@ -106,7 +106,7 @@ func scan(s string) {
 			id_buffer = string(s[i])
 			identifier_f = true
 		} else if is_digit(s[i]) {
-			constant_buffer = s[i] - '0'
+			constant_buffer = int8(s[i]) - '0'
 			constant_f = true
 		} else if s[i] == '/' {
 			expect_slash_f = true
