@@ -89,7 +89,7 @@ func semantic() {
 	var id int8 = -1
 L:
 	for {
-		switch <- p_to_t {
+		switch <-p_to_t {
 		case identifier:
 			//how to handle an identifier depends whether we're in an expression or not
 			//we're in an expression if the stack is non-empty
@@ -135,7 +135,8 @@ L:
 			arity_stack[len(arity_stack)-1] = add(arity_stack[len(arity_stack)-1], -1)
 		case rec:
 			//this part is rather tricky, it must be exactly one more than the first operand, and one less than the second
-			arity_stack = append(arity_stack[:len(arity_stack)-2], merge(add(arity_stack[len(arity_stack)-2], 1), add(arity_stack[len(arity_stack)-1], -1)))
+			arity_stack = append(arity_stack[:len(arity_stack)-2],
+				merge(add(arity_stack[len(arity_stack)-2], 1), add(arity_stack[len(arity_stack)-1], -1)))
 		case equals:
 			arity_table[id] = arity_stack[len(arity_stack)-1].arity
 			arity_stack = arity_stack[:len(arity_stack)-1]

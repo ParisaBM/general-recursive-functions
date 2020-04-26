@@ -4,10 +4,10 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
-	"fmt"
 )
 
 //these are the signals the phases use to communicate with one another
@@ -73,7 +73,7 @@ func main() {
 	if n != 2 {
 		debug(n)
 	} else {
-		<- t_to_c
+		<-t_to_c
 	}
 }
 
@@ -87,26 +87,27 @@ func debug(n int) {
 	case 1:
 		ch = p_to_t
 	}
-	L: for {
+L:
+	for {
 		//there's a bit of code to handle compound tokens, but otherwise it just displays each token
-		switch <- ch {
+		switch <-ch {
 		case constant:
 			fmt.Println("constant")
-			fmt.Println(<- ch)
+			fmt.Println(<-ch)
 		case suc:
 			fmt.Println("suc")
 		case proj:
 			fmt.Println("proj")
 			//in the scanner output there are constant markers that are removed by the parser
-			if n==1 {
-				fmt.Println(<- ch)
-				fmt.Println(<- ch)
+			if n == 1 {
+				fmt.Println(<-ch)
+				fmt.Println(<-ch)
 			}
 		case comp:
 			fmt.Println("comp")
 			//in the parser, comp is followed by its arity
-			if n==1 {
-				fmt.Println(<- ch)
+			if n == 1 {
+				fmt.Println(<-ch)
 			}
 		case min:
 			fmt.Println("min")
@@ -114,7 +115,7 @@ func debug(n int) {
 			fmt.Println("rec")
 		case identifier:
 			fmt.Println("identifier")
-			fmt.Println(<- ch)
+			fmt.Println(<-ch)
 		case equals:
 			fmt.Println("equals")
 		case open_paren:
