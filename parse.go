@@ -1,8 +1,8 @@
 package main
 
-import "fmt"
-
-func parse() {
+//import "fmt"
+func parse() {} //On Hold
+/*func parse() {
 	//the syntax of this language is highly regular
 	//each line consists of code contains a definition
 	//each iteration of this loop consumes one definition or a blank line, or the end of the file
@@ -107,4 +107,4 @@ func expect(b int8) {
 	if <-s_to_p != b {
 		fmt.Println("error")
 	}
-}
+}*/

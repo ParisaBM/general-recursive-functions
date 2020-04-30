@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 func is_alphabetic(c byte) bool {
 	//returns true if the input is a letter and false otherwise
 	return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
@@ -11,120 +9,103 @@ func is_digit(c byte) bool {
 	return '0' <= c && c <= '9'
 }
 
-func scan(s string) {
-	//reads the inputs one byte at a time and emits what it finds
-	//scanner flags are named as: X_f
-
-	//comment is true if the scanner is within a comment
-	comment_f := false
-
-	//slashes appear in pairs
-	//expected_slash is true if a slash was just read
-	expect_slash_f := false
-
-	//if the scanner is within a constant, then constant_fs is true, and const buffer saves the result
-	constant_f := false
-	var constant_buffer int8 = 0
-
-	//identifiers are treated likewise
-	identifier_f := false
-	id_buffer := ""
-
+//scan() is the function that instantiates the scanner
+//it recieves its input from f_to_s and send output to s_to_p
+//the scanner consists of a loop that finds one token each iteration
+//it invokes auxiliary functions for more complex token
+func scan() {
 	//the name table is used in screening, it maps each user defined function name to a unique integer
-	name_table := make(map[string]int8)
+	name_table := make(map[string]byte)
+	//main is always mapped to 0, this fact will be used in subsequent phases
 	name_table["main"] = 0
-	for i := 0; i < len(s); i++ {
-		//anywhere there is an i-- this means the character is not consumed
-
-		//this loop is divided into 2 parts
-		//first all the cases where one of the boolean flags is set are handled\
-		//otherwise the scanner is between tokens and it reads the character to determine how to proceed
-
-		//here is the first section, where flags are checked
-		if comment_f {
-			if s[i] == '\n' {
-				comment_f = false
-				i--
-			}
-		} else if expect_slash_f {
-			if s[i] == '/' {
-				comment_f = true
-				expect_slash_f = false
-			} else {
-				fmt.Println("error: bad comment")
-				s_to_p <- err
-				return
-			}
-		} else if constant_f {
-			if is_digit(s[i]) {
-				constant_buffer = (constant_buffer * 10) + int8(s[i]) - '0'
-			} else if is_alphabetic(s[i]) || s[i] == '_' {
-				fmt.Println("error: bad identifier")
-				s_to_p <- err
-				return
-			} else {
-				s_to_p <- constant
-				s_to_p <- constant_buffer
-				//the buffer is reset (effectively, the content will be overwritten later if it needs to be)
-				constant_f = false
-				i--
-			}
-		} else if identifier_f {
-			if is_alphabetic(s[i]) || is_digit(s[i]) || s[i] == '_' {
-				id_buffer += string(s[i])
-			} else {
-				//fist the identifier is compared agains all the keywords
-				//main for our purposes is a keyword
-				if id_buffer == "suc" {
-					s_to_p <- suc
-				} else if id_buffer == "proj" {
-					s_to_p <- proj
-				} else if id_buffer == "rec" {
-					s_to_p <- rec
-				} else if id_buffer == "comp" {
-					s_to_p <- comp
-				} else if id_buffer == "min" {
-					s_to_p <- min
-					//if it is not a keyword, we handle it using the name_table
-				} else {
-					s_to_p <- identifier
-					n, ok := name_table[id_buffer]
-					//ok is false if this is the first time the name is seen
-					if !ok {
-						//we assign the size of the table to the new identifier
-						//this will always result in unique values
-						n = int8(len(name_table))
-						name_table[id_buffer] = n
-					}
-					s_to_p <- n
-				}
-				identifier_f = false
-				i--
-			}
-			//here is the second section, where different symbols are handled
-		} else if is_alphabetic(s[i]) || s[i] == '_' {
-			id_buffer = string(s[i])
-			identifier_f = true
-		} else if is_digit(s[i]) {
-			constant_buffer = int8(s[i]) - '0'
-			constant_f = true
-		} else if s[i] == '/' {
-			expect_slash_f = true
-		} else if s[i] == '(' {
-			s_to_p <- open_paren
-		} else if s[i] == ')' {
-			s_to_p <- close_paren
-		} else if s[i] == '=' {
-			s_to_p <- equals
-		} else if s[i] == ',' {
-			s_to_p <- comma
-		} else if s[i] == '\n' {
-			s_to_p <- newline
-		} else if s[i] != ' ' {
-			fmt.Println("error: invalid symbol ", s[i])
-			s_to_p <- err
-			return
+	for {
+		b := f_to_s.get()
+		if b == '/' {
+			scan_comment()
+		} else if is_digit(b) {
+			f_to_s.undo()
+			scan_constant()
+		} else if is_alphabetic(b) || b == '_' {
+			f_to_s.undo()
+			scan_identifier()
+		} else if b == '(' {
+			s_to_p.put(open_paren)
+		} else if b == ')' {
+			s_to_p.put(close_paren)
+		} else if b == '=' {
+			s_to_p.put(equals)
+		} else if b == '\n' {
+			s_to_p.put(newline)
+		} else if b == ',' {
+			s_to_p.put(comma)
+		} else if b == '\xFF' {
+			s_to_p.put(end)
+			break
+		} else if b != ' ' {
+			panic("unexpected symbol")
 		}
 	}
-	s_to_p <- end
+}
+
+//scan_comment expects the second slash, then consumes everything up to,
+//but not include the next newline
+func scan_comment() {
+	if f_to_s.get() != '/' {
+		panic("expected slash")
+	}
+	for f_to_s.get() != '\n' {}
+	f_to_s.undo()
+}
+
+//scan_constant consumes a sequence of digits, then emits the resulting number
+func scan_constant() {
+	buffer := ""
+	for {
+		b := f_to_s.get()
+		if is_digit(b) {
+			buffer += string(b)
+		} else {
+			value, _ := atoi(buffer)
+			s_to_p.put(constant)
+			s_to_p.put(b)
+			f_to_s.undo()
+		}
+	}
+}
+
+//scan_identifier consumes a sequence of letters digits and underscores
+//if the result is a keyword, that keyword's token is emmited
+//otherwise the name is mapped to a number using the name table and that is emmited
+func scan_identifier(name_table map[string]byte) {
+	buffer := ""
+	for {
+		b := f_to_s.get()
+		if is_digit(b) || is_alphabetic(b) || b == '_'  {
+			buffer += string(b)
+		} else {
+			if buffer == "suc" {
+				s_to_p.put(suc)
+			} else if buffer == "proj" {
+				s_to_p.put(proj)
+			} else if buffer == "rec" {
+				s_to_p.put(rec)
+			} else if buffer == "comp" {
+				s_to_p.put(comp)
+			} else if buffer == "min" {
+				s_to_p.put(min)
+			} else {
+				//if it is not a keyword, we handle it using the name_table
+				s_to_p.put(identifier)
+				n, ok := name_table[buffer]
+				//ok is false if this is the first time the name is seen
+				if !ok {
+					//we assign the size of the table to the new identifier
+					//this will always result in unique values
+					n = len(name_table)
+					name_table[buffer] = n
+				}
+				s_to_p.put(n)
+			}
+		}
+	}	
 }

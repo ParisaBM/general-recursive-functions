@@ -1,6 +1,6 @@
 package main
-
-import "fmt"
+//On Hold
+/*import "fmt"
 
 //we require a way to systematically generate new labels
 //we do this by using the number of labels that have been used (labels_used)
@@ -87,4 +87,4 @@ func represent_function(target int8, protected int8, args []int8, b int8) {
 		fmt.Println("B L", l)
 		fmt.Println("L", l+1, ":")
 	}
-}
+}*/
