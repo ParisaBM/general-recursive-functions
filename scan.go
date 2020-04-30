@@ -1,5 +1,8 @@
 package main
 
+//import "fmt"
+import "strconv"
+
 func is_alphabetic(c byte) bool {
 	//returns true if the input is a letter and false otherwise
 	return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
@@ -27,7 +30,7 @@ func scan() {
 			scan_constant()
 		} else if is_alphabetic(b) || b == '_' {
 			f_to_s.undo()
-			scan_identifier()
+			scan_identifier(name_table)
 		} else if b == '(' {
 			s_to_p.put(open_paren)
 		} else if b == ')' {
@@ -38,7 +41,8 @@ func scan() {
 			s_to_p.put(newline)
 		} else if b == ',' {
 			s_to_p.put(comma)
-		} else if b == '\xFF' {
+		} else if b == '\x00' {
+			//\0 signifies the end
 			s_to_p.put(end)
 			break
 		} else if b != ' ' {
@@ -65,10 +69,11 @@ func scan_constant() {
 		if is_digit(b) {
 			buffer += string(b)
 		} else {
-			value, _ := atoi(buffer)
+			value, _ := strconv.Atoi(buffer)
 			s_to_p.put(constant)
-			s_to_p.put(b)
+			s_to_p.put(byte(value))
 			f_to_s.undo()
+			break
 		}
 	}
 }
@@ -79,6 +84,7 @@ func scan_constant() {
 func scan_identifier(name_table map[string]byte) {
 	buffer := ""
 	for {
+		//fmt.Println(f_to_s.buf_in_use)
 		b := f_to_s.get()
 		if is_digit(b) || is_alphabetic(b) || b == '_'  {
 			buffer += string(b)
@@ -94,6 +100,7 @@ func scan_identifier(name_table map[string]byte) {
 			} else if buffer == "min" {
 				s_to_p.put(min)
 			} else {
+				//fmt.Println(buffer)
 				//if it is not a keyword, we handle it using the name_table
 				s_to_p.put(identifier)
 				n, ok := name_table[buffer]
@@ -101,11 +108,13 @@ func scan_identifier(name_table map[string]byte) {
 				if !ok {
 					//we assign the size of the table to the new identifier
 					//this will always result in unique values
-					n = len(name_table)
+					n = byte(len(name_table))
 					name_table[buffer] = n
 				}
 				s_to_p.put(n)
 			}
+			f_to_s.undo()
+			break
 		}
 	}	
 }

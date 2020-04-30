@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+//On Hold
+func semantic(){}
+
+/*import "fmt"
 
 //the semantic phase must check that:
 //there is a main function
@@ -177,4 +180,4 @@ L:
 		fmt.Println(n, m)
 	}
 	t_to_r <- 0
-}
+}*/

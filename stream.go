@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"bufio"
+	"errors"
+	"io"
 )
 
 //a stream, for lack of a better name is significant augment to go's channels
@@ -88,13 +90,20 @@ func new_stream() Stream {
 	return Stream{make(chan byte), make([]List, 0), true, 0, false}
 }
 
-func from_file(file *File) Stream {
+//this function wasn't descibed in the long sequence of comments above
+//it takes the contents of a file, makes a new stream, and sends the file down the stream
+func from_file(file *os.File) Stream {
 	s := new_stream()
 	go func() {
 		br := bufio.NewReader(file)
-		for b, err := br.ReadByte {
+		for {
+			b, err := br.ReadByte()
 			if err != nil {
-				panic(err)
+				if errors.Is(err, io.EOF) {
+					s.put('\x00')
+				} else {
+					panic(err)
+				}
 			}
 			s.put(b)
 		}
@@ -102,63 +111,63 @@ func from_file(file *File) Stream {
 	return s
 }
 
-func put(s Stream, b byte) {
-	if can_emit {
+func (s Stream) put(b byte) {
+	if s.can_emit {
 		s.ch <- b
 	} else {
-		s.delay_stack[len(s.delay_stack)-1].push(b)
+		s.buffer_stack[len(s.buffer_stack)-1].push(b)
 	}
 }
 
 
-func begin_buffering(s Stream) {
-	can_emit = false
-	s.delay_stack = append(s.delay_stack, new_list())
+func (s Stream) begin_buffering() {
+	s.can_emit = false
+	s.buffer_stack = append(s.buffer_stack, new_list())
 }
 
-func end_buffering(s Stream) {
-	if len(s.delay_stack) == 0 {
+func (s Stream) end_buffering() {
+	if len(s.buffer_stack) == 0 {
 		panic("nothing to end")
 	}
-	if len(s.delay_stack) == 1 {
+	if len(s.buffer_stack) == 1 {
 		s.can_emit = true
 	} else {
-		s.delay_stack = append(s.delay_stack, new_list())
+		s.buffer_stack = append(s.buffer_stack, new_list())
 	}
 }
 
-func put_buffer(s Stream) {
-	if len(s.delay_stack) <= 1 {
+func (s Stream) put_buffer() {
+	if len(s.buffer_stack) <= 1 {
 		panic("nothing to put")
 	} else {
 		s.buffer_stack[len(s.buffer_stack)-2].prepend(s.buffer_stack[len(s.buffer_stack)-1])
 		s.buffer_stack = s.buffer_stack[:len(s.buffer_stack)-1]
 		if len(s.buffer_stack) == 1 {
 			//it iterates through the elements and outputs them to ch
-			it := s.delay_stack[0].head
+			it := s.buffer_stack[0].head
 			for it != nil {
 				s.ch <- it.data
 				it = it.next
 			}
-			buffer_stack = make([]List, 0)
+			s.buffer_stack = make([]List, 0)
 		}
 	}
 }
 
-func get(s Stream) byte {
-	if buf_in_use {
-		buf_in_use = false
+func (s *Stream) get() byte {
+	if s.buf_in_use {
+		s.buf_in_use = false
 	} else {
-		buf = <- ch
+		s.buf = <- s.ch
 	}
-	return buf
+	return s.buf
 }
 
-func undo(s Stream) {
-	if buf_in_use {
+func (s *Stream) undo() {
+	if s.buf_in_use {
 		panic("multiple undo")
 	}
-	buf_in_use = true
+	s.buf_in_use = true
 }
 
 //here are the list methods used earlier
@@ -174,21 +183,21 @@ type List struct {
 }
 
 func new_list() List {
-	List{nil, nil}
+	return List{nil, nil}
 }
 
-func push(l List, b byte) {
-	if tail == nil {
-		tail = &Node{b, nil}
-		head = tail
+func (l List) push(b byte) {
+	if l.tail == nil {
+		l.tail = &Node{b, nil}
+		l.head = l.tail
 	} else {
-		tail.next = &Node{b, nil}
-		tail = tail.next
+		l.tail.next = &Node{b, nil}
+		l.tail = l.tail.next
 	}
 }
 
 //adds the contents of l1 to the front of l0
-func prepend(l0, l1 List) {
+func (l0 List) prepend(l1 List) {
 	//if l1 is empty nothing has to happen
 	if l1.tail != nil {
 		l1.tail.next = l0.head
