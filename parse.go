@@ -15,7 +15,9 @@ L:
 			p_to_t.put(s_to_p.get())
 			expect(equals)
 			function()
+			expect(newline)
 			p_to_t.put(equals)
+			p_to_t.put(newline)
 		case newline:
 			p_to_t.put(newline)
 		case end:
@@ -50,9 +52,12 @@ func function() {
 		p_to_t.put(s_to_p.get())
 	//comp expects a comma seperated list of atleast one function in brackets
 	case comp:
-		p_to_t.put(prefix_comp)
+		p_to_t.put(comp)
+		p_to_t.begin_buffering()
 		expect(open_paren)
+		p_to_t.begin_buffering()
 		function() //this is the first function
+		p_to_t.end_buffering()
 		//a composition is emitted with its arity so the sematic analyzer can deduce
 		//how many functions are being composed together
 		var arity byte = 0
@@ -70,24 +75,25 @@ func function() {
 				fmt.Println("error, bad end of comp")
 			}
 		}
-		p_to_t.put(comp)
+		p_to_t.put_buffer()
+		p_to_t.end_buffering()
 		p_to_t.put(arity)
+		p_to_t.put_buffer()
+		fmt.Println("reached")
 	//min expects a function enclosed in brackets
 	case min:
-		p_to_t.put(prefix_min)
+		p_to_t.put(min)
 		expect(open_paren)
 		function()
 		expect(close_paren)
-		p_to_t.put(min)
 	//rec expects 2 funtions enclosed in brackets
 	case rec:
-		p_to_t.put(prefix_rec)
+		p_to_t.put(rec)
 		expect(open_paren)
 		function()
 		expect(comma)
 		function()
 		expect(close_paren)
-		p_to_t.put(rec)
 	//identifiers are unchanged
 	case identifier:
 		p_to_t.put(identifier)

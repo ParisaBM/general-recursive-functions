@@ -57,7 +57,8 @@ func scan_comment() {
 	if f_to_s.get() != '/' {
 		panic("expected slash")
 	}
-	for f_to_s.get() != '\n' {}
+	for f_to_s.get() != '\n' {
+	}
 	f_to_s.undo()
 }
 
@@ -86,7 +87,7 @@ func scan_identifier(name_table map[string]byte) {
 	for {
 		//fmt.Println(f_to_s.buf_in_use)
 		b := f_to_s.get()
-		if is_digit(b) || is_alphabetic(b) || b == '_'  {
+		if is_digit(b) || is_alphabetic(b) || b == '_' {
 			buffer += string(b)
 		} else {
 			if buffer == "suc" {
@@ -116,5 +117,5 @@ func scan_identifier(name_table map[string]byte) {
 			f_to_s.undo()
 			break
 		}
-	}	
+	}
 }

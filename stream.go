@@ -1,10 +1,10 @@
 package main
 
 import (
-	"os"
 	"bufio"
 	"errors"
 	"io"
+	"os"
 )
 
 //a stream, for lack of a better name is significant augment to go's channels
@@ -79,11 +79,11 @@ import (
 
 //ch is the channel that this is built atop
 type Stream struct {
-	ch chan byte
+	ch           chan byte
 	buffer_stack []List
-	can_emit bool
-	buf byte
-	buf_in_use bool
+	can_emit     bool
+	buf          byte
+	buf_in_use   bool
 }
 
 func new_stream() Stream {
@@ -111,7 +111,7 @@ func from_file(file *os.File) Stream {
 	return s
 }
 
-func (s Stream) put(b byte) {
+func (s *Stream) put(b byte) {
 	if s.can_emit {
 		s.ch <- b
 	} else {
@@ -119,13 +119,12 @@ func (s Stream) put(b byte) {
 	}
 }
 
-
-func (s Stream) begin_buffering() {
+func (s *Stream) begin_buffering() {
 	s.can_emit = false
 	s.buffer_stack = append(s.buffer_stack, new_list())
 }
 
-func (s Stream) end_buffering() {
+func (s *Stream) end_buffering() {
 	if len(s.buffer_stack) == 0 {
 		panic("nothing to end")
 	}
@@ -136,7 +135,7 @@ func (s Stream) end_buffering() {
 	}
 }
 
-func (s Stream) put_buffer() {
+func (s *Stream) put_buffer() {
 	if len(s.buffer_stack) <= 1 {
 		panic("nothing to put")
 	} else {
@@ -158,7 +157,7 @@ func (s *Stream) get() byte {
 	if s.buf_in_use {
 		s.buf_in_use = false
 	} else {
-		s.buf = <- s.ch
+		s.buf = <-s.ch
 	}
 	return s.buf
 }
@@ -186,7 +185,7 @@ func new_list() List {
 	return List{nil, nil}
 }
 
-func (l List) push(b byte) {
+func (l *List) push(b byte) {
 	if l.tail == nil {
 		l.tail = &Node{b, nil}
 		l.head = l.tail
@@ -197,7 +196,7 @@ func (l List) push(b byte) {
 }
 
 //adds the contents of l1 to the front of l0
-func (l0 List) prepend(l1 List) {
+func (l0 *List) prepend(l1 List) {
 	//if l1 is empty nothing has to happen
 	if l1.tail != nil {
 		l1.tail.next = l0.head

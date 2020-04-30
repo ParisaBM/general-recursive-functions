@@ -1,4 +1,5 @@
 package main
+
 //On Hold
 /*import "fmt"
 
@@ -58,7 +59,7 @@ func represent_function(target int8, protected int8, args []int8, b int8) {
 	case proj:
 		fmt.Println("MOV R", target, " R", args[<- t_to_r])
 	case prefix_comp:
-		
+
 	case prefix_min:
 		fmt.Println("MOV R", target, " 0")
 		//min requires a loop
@@ -75,7 +76,7 @@ func represent_function(target int8, protected int8, args []int8, b int8) {
 	case prefix_rec:
 		represent_funtion(protected+1, protected+1, args[1:], none)
 		fmt.Println("MOV R", protected+2, " 0")
-		//allocate 2 labels, l and l+1 
+		//allocate 2 labels, l and l+1
 		l := labels_used
 		labels_used += 2
 		fmt.Println("L", l, ":")

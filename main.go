@@ -12,27 +12,23 @@ import (
 //these are the signals the phases use to communicate with one another
 const (
 	//scanner and parser tokens
-	constant    = iota
-	suc         = iota
-	proj        = iota
-	comp        = iota
-	min         = iota
-	rec         = iota
-	identifier  = iota
-	equals      = iota
-	newline     = iota
-	err         = iota
-	end         = iota
+	constant   = iota
+	suc        = iota
+	proj       = iota
+	comp       = iota
+	min        = iota
+	rec        = iota
+	identifier = iota
+	equals     = iota
+	newline    = iota
+	err        = iota
+	end        = iota
 	//scanner_tokens
 	open_paren  = iota
 	close_paren = iota
 	comma       = iota
-	//parser tokens
-	prefix_comp = iota
-	prefix_min  = iota
-	prefix_rec  = iota
 	//representation token
-	none        = iota
+	none = iota
 )
 
 //these are the channels the phases use to communicate with one another
