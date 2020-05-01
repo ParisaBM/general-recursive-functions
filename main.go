@@ -93,6 +93,9 @@ func debug(n int) {
 	case 2:
 		ch = t_to_r
 	}
+	//tracks whether at the start of a new line
+	//only relevant to semantic phase
+	start_of_line := true
 L:
 	for {
 		//there's a bit of code to handle compound tokens, but otherwise it just displays each token
@@ -112,7 +115,7 @@ L:
 		case comp:
 			fmt.Println("comp")
 			//in the parser, comp is followed by its arity
-			if n == 1 {
+			if n == 1 || n == 2 {
 				fmt.Println(ch.get())
 			}
 		case min:
@@ -122,8 +125,13 @@ L:
 		case identifier:
 			fmt.Println("identifier")
 			fmt.Println(ch.get())
+			if n == 2 && start_of_line {
+				fmt.Println(ch.get())
+				start_of_line = false
+			}
 		case equals:
 			fmt.Println("equals")
+			start_of_line = true
 		case open_paren:
 			fmt.Println("open_paren")
 		case close_paren:

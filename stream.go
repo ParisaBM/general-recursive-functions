@@ -53,6 +53,9 @@ import (
 //put_buffer() pops the top, and 2nd from top and adds them to the 3rd from top element of the stack
 //if there aren't 3 elements on the stack they get emitted instead
 //put() adds an element to the buffer on top of the stack, unless its empty in which case it emits it
+//note that begin_buffering() and end_buffering() are actually the same thing
+//in our implementation we just have 1 function delimit_buffering()
+//it is accompanied by a comment explaining which one it everywhere it is used 
 //the reciever thankfully is much simpler
 //streams allow the reciever to peek at the input
 //get() recieves a message from the sender
@@ -100,11 +103,7 @@ func (s *Stream) put(b byte) {
 	}
 }
 
-func (s *Stream) begin_buffering() {
-	s.buffer_stack = append(s.buffer_stack, new_list())
-}
-
-func (s *Stream) end_buffering() {
+func (s *Stream) delimit_buffering() {
 	s.buffer_stack = append(s.buffer_stack, new_list())
 }
 
