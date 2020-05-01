@@ -110,7 +110,7 @@ func (s *Stream) end_buffering() {
 
 func (s *Stream) put_buffer() {
 	s.buffer_stack[len(s.buffer_stack)-2].prepend(s.buffer_stack[len(s.buffer_stack)-1])
-	if len(s.buffer_stack) == 1 {
+	if len(s.buffer_stack) == 2 {
 		//it iterates through the elements and outputs them to ch
 		it := s.buffer_stack[0].head
 		for it != nil {
