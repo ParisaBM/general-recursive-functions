@@ -21,6 +21,7 @@ L:
 		case newline:
 			p_to_t.put(newline)
 		case end:
+			fmt.Println("reached end")
 			p_to_t.put(end)
 			break L
 		default:
@@ -79,7 +80,6 @@ func function() {
 		p_to_t.end_buffering()
 		p_to_t.put(arity)
 		p_to_t.put_buffer()
-		fmt.Println("reached")
 	//min expects a function enclosed in brackets
 	case min:
 		p_to_t.put(min)

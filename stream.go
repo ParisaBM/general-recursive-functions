@@ -47,30 +47,12 @@ import (
 //put_buffer()
 //this will output C, D, B, A in that order
 //how do we implement this?
-//first we will see a naive implementation, then sort out some details
 //we will use a stack of buffers
 //begin_buffering() puts an empty buffer onto the stack
 //end_buffering() puts an empty buffer onto the stack
-//put_buffer() pops the top 2 buffers and concatenates them with the one originally on top of the stack ending up on the left
-//put() adds an element to the buffer on top of the stack
-//this is mostly complete, however nothing ever gets emitted
-//we can change put_buffer() to check if the resulting stack has one element, and if it does emit it
-//also change put() to simply emit if the stack is empty
-//now we have described a working implementation
-//in fact, this solution is simpler than the one given here, because begin_buffering, and end_buffering can be the same function
-//that is because this implementation will often delay emissions unnecessarily
-//for example:
-//begin_buffering()
-//put(A)
-//end_buffering()
-//put(B)
-//put(C)
-//put(D)
-//put_buffer()
-//this will not emit B until put_buffer(), although it should be emitted right away
-//we can solve this using a boolean can_emit
-//end_buffering() should check if the stack has height 1, and if it does set can_emit to true
-//the buffers are implemented as linked lists because they have O(1) concatenation
+//put_buffer() pops the top, and 2nd from top and adds them to the 3rd from top element of the stack
+//if there aren't 3 elements on the stack they get emitted instead
+//put() adds an element to the buffer on top of the stack, unless its empty in which case it emits it
 //the reciever thankfully is much simpler
 //streams allow the reciever to peek at the input
 //get() recieves a message from the sender
@@ -81,13 +63,12 @@ import (
 type Stream struct {
 	ch           chan byte
 	buffer_stack []List
-	can_emit     bool
 	buf          byte
 	buf_in_use   bool
 }
 
 func new_stream() Stream {
-	return Stream{make(chan byte), make([]List, 0), true, 0, false}
+	return Stream{make(chan byte), make([]List, 0), 0, false}
 }
 
 //this function wasn't descibed in the long sequence of comments above
@@ -112,7 +93,7 @@ func from_file(file *os.File) Stream {
 }
 
 func (s *Stream) put(b byte) {
-	if s.can_emit {
+	if len(s.buffer_stack) == 0 {
 		s.ch <- b
 	} else {
 		s.buffer_stack[len(s.buffer_stack)-1].push(b)
@@ -120,37 +101,26 @@ func (s *Stream) put(b byte) {
 }
 
 func (s *Stream) begin_buffering() {
-	s.can_emit = false
 	s.buffer_stack = append(s.buffer_stack, new_list())
 }
 
 func (s *Stream) end_buffering() {
-	if len(s.buffer_stack) == 0 {
-		panic("nothing to end")
-	}
-	if len(s.buffer_stack) == 1 {
-		s.can_emit = true
-	} else {
-		s.buffer_stack = append(s.buffer_stack, new_list())
-	}
+	s.buffer_stack = append(s.buffer_stack, new_list())
 }
 
 func (s *Stream) put_buffer() {
-	if len(s.buffer_stack) <= 1 {
-		panic("nothing to put")
-	} else {
-		s.buffer_stack[len(s.buffer_stack)-2].prepend(s.buffer_stack[len(s.buffer_stack)-1])
-		s.buffer_stack = s.buffer_stack[:len(s.buffer_stack)-1]
-		if len(s.buffer_stack) == 1 {
-			//it iterates through the elements and outputs them to ch
-			it := s.buffer_stack[0].head
-			for it != nil {
-				s.ch <- it.data
-				it = it.next
-			}
-			s.buffer_stack = make([]List, 0)
+	s.buffer_stack[len(s.buffer_stack)-2].prepend(s.buffer_stack[len(s.buffer_stack)-1])
+	if len(s.buffer_stack) == 1 {
+		//it iterates through the elements and outputs them to ch
+		it := s.buffer_stack[0].head
+		for it != nil {
+			s.ch <- it.data
+			it = it.next
 		}
+	} else {
+		s.buffer_stack[len(s.buffer_stack)-3].list_append(s.buffer_stack[len(s.buffer_stack)-2])
 	}
+	s.buffer_stack = s.buffer_stack[:len(s.buffer_stack)-2]
 }
 
 func (s *Stream) get() byte {
@@ -195,6 +165,7 @@ func (l *List) push(b byte) {
 	}
 }
 
+
 //adds the contents of l1 to the front of l0
 func (l0 *List) prepend(l1 List) {
 	//if l1 is empty nothing has to happen
@@ -205,4 +176,11 @@ func (l0 *List) prepend(l1 List) {
 			l0.tail = l1.tail
 		}
 	}
+}
+
+//adds the contents of l1 after l0
+//the name append is taken
+func (l0 *List) list_append(l1 List) {
+	l1.prepend(*l0)
+	*l0 = l1
 }
