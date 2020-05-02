@@ -93,9 +93,9 @@ func debug(n int) {
 	case 2:
 		ch = t_to_r
 	}
-	//tracks whether at the start of a new line
-	//only relevant to semantic phase
-	start_of_line := true
+	
+	//next_id is used to determine if a particular identifier is a declaration
+	next_id := byte(1)
 L:
 	for {
 		//there's a bit of code to handle compound tokens, but otherwise it just displays each token
@@ -110,6 +110,8 @@ L:
 			//in the scanner output there are constant markers that are removed by the parser
 			if n == 1 || n == 2 {
 				fmt.Println(ch.get())
+			}
+			if n == 1 {
 				fmt.Println(ch.get())
 			}
 		case comp:
@@ -124,14 +126,14 @@ L:
 			fmt.Println("rec")
 		case identifier:
 			fmt.Println("identifier")
-			fmt.Println(ch.get())
-			if n == 2 && start_of_line {
+			id := ch.get()
+			fmt.Println(id)
+			if n == 2 && (id == next_id || id == 0) {
 				fmt.Println(ch.get())
-				start_of_line = false
+				next_id++
 			}
 		case equals:
 			fmt.Println("equals")
-			start_of_line = true
 		case open_paren:
 			fmt.Println("open_paren")
 		case close_paren:

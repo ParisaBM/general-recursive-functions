@@ -92,6 +92,7 @@ L:
 			t_to_r.put_buffer()
 			arity_table[id] = Arity{ar.arity, true}
 		case end:
+			t_to_r.put(end)
 			break L
 		}
 	}
