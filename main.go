@@ -27,8 +27,6 @@ const (
 	open_paren  = iota
 	close_paren = iota
 	comma       = iota
-	//representation token
-	none = iota
 )
 
 //these are the channels the phases use to communicate with one another
@@ -37,6 +35,7 @@ var f_to_s Stream
 var s_to_p Stream
 var p_to_t Stream
 var t_to_r Stream
+var r_to_c Stream
 
 func main() {
 	//it is beyond the scope of this project to support multi-file codebases
@@ -64,6 +63,7 @@ func main() {
 	s_to_p = new_stream()
 	p_to_t = new_stream()
 	t_to_r = new_stream()
+	r_to_c = new_stream()
 	//then we begin the phases
 	if n >= 0 {
 		go scan()
@@ -74,10 +74,13 @@ func main() {
 	if n >= 2 {
 		go semantic()
 	}
+	if n >= 3 {
+		go represent()
+	}
 	if n != 3 {
 		debug(n)
 	} else {
-		t_to_r.get()
+		r_to_c.get()
 	}
 }
 

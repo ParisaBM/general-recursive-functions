@@ -1,41 +1,44 @@
 package main
 
-//On Hold
-/*import "fmt"
+import "fmt"
 
 //we require a way to systematically generate new labels
 //we do this by using the number of labels that have been used (labels_used)
 //then incrementing labels_used
 //this results in labels being assign sequentially
 //this variable will be passed by reference so that any function generating code can use it
-labels_used := int8(0)
+var labels_used byte
 //every named function has a label indicating where it starts
 //these are kept in the label table
-label_table := make(chan[int8]int8)
+var label_table map[byte]byte
 //these are global variables because the type signature of represent_funtion() would be ungodly otherwise
 func represent() {
+	labels_used = 0
+	label_table = make(map[byte]byte)
+	fmt.Println("section .text")
+	fmt.Println("\tglobal _start")
+	fmt.Println("_start:")
 	L: for {
 		//each iteration of this loop processes one line of code
-		switch t_to_r {
-		case end:
-			break L
+		switch t_to_r.get() {
 		case identifier:
 			//first the function is given a label
-			fmt.Println("L", labels_used)
-			label_table[<- t_to_r] = labels_used
+			fmt.Printf("L%d:\n", labels_used)
+			label_table[t_to_r.get()] = labels_used
 			labels_used++
 			//next we accumulate the instructions in the function definition
-			arity := <- t_to_r
-			args := make([]int8, 0)
-			for i := 1; i <= arity; i++ {
-				fmt.Println("pop R", i)
+			ar := t_to_r.get()
+			args := make([]byte, 0)
+			for i := byte(1); i <= ar; i++ {
+				fmt.Printf("POP R%d\n", i)
 				args = append(args, i)
-				protected = append(protected, i)
 			}
-			represent_function(0, arity, args, none)
-			}
+			represent_function(0, ar, args)
+		case end:
+			break L
 		}
 	}
+	r_to_c.put(0)
 }
 
 //represent_fucntion recursively generates psuedo-assembly for a function
@@ -47,45 +50,44 @@ func represent() {
 //occasionally we will have to peek at the input stream, then put the value back
 //if this is the case, the value will be put back into b
 //b is none if nothing was put back this way
-func represent_function(target int8, protected int8, args []int8, b int8) {
-	if b != none {
-		b = <- t_to_r
-	}
-	switch b {
+func represent_function(target byte, protected byte, args []byte) {
+	switch t_to_r.get() {
 	case constant:
-		fmt.Println("MOV R", target, " ", <- t_to_r)
+		fmt.Printf("MOV R%d %d\n", target, t_to_r.get())
 	case suc:
-		fmt.Pritnln("ADD R", target, " R", args[0], " 1")
+		fmt.Printf("ADD R%d R%d 1\n", target, args[0])
 	case proj:
-		fmt.Println("MOV R", target, " R", args[<- t_to_r])
-	case prefix_comp:
-
-	case prefix_min:
-		fmt.Println("MOV R", target, " 0")
+		fmt.Printf("MOV R%d R%d\n", target, args[t_to_r.get()])
+	case comp:
+		fmt.Printf("broken\n")
+	case min:
+		fmt.Printf("MOV R%d 0\n", target)
 		//min requires a loop
-		//for which we allocate a new label
-		l := labels_used
-		labels_used++
-		fmt.Println("L", l, ":")
-		represent_function(protected+1, protected+1, append(target, args), none)
-		fmt.Println("ADD R", target, " 1")
-		fmt.Println("CMP R", protected+1, " 0")
-		fmt.Println("BNE L", l)
-		//the loop over-increments by 1
-		fmt.Println("SUB R", target, " 1")
-	case prefix_rec:
-		represent_funtion(protected+1, protected+1, args[1:], none)
-		fmt.Println("MOV R", protected+2, " 0")
+		//for which we allocate new labels
 		//allocate 2 labels, l and l+1
 		l := labels_used
+		labels_used+=2
+		fmt.Printf("L%d:\n", l)
+		represent_function(protected+1, protected+1, append([]byte{target}, args...))
+		fmt.Printf("CMP R%d 0\n", protected+1)
+		fmt.Printf("BEQ L%d\n", l+1)
+		fmt.Printf("ADD R%d 1\n", target)
+		fmt.Printf("B L%d\n", l)
+		fmt.Printf("L%d:\n", l+1)		
+	case rec:
+		represent_function(protected+1, protected+1, args[1:])
+		fmt.Printf("MOV R%d 0\n", protected+2)
+		//allocate 2 new labels
+		l := labels_used
 		labels_used += 2
-		fmt.Println("L", l, ":")
-		fmt.Println("MOV R", target, " R", protected+1)
-		fmt.Println("CMP R", protected+2, " R", args[0])
-		fmt.Println("BEQ L", l+1)
-		represent_function(protected+1, protected+2, append(protected+2, target, args), none)
-		fmt.Println("ADD R", protected+2, " 1")
-		fmt.Println("B L", l)
-		fmt.Println("L", l+1, ":")
+		fmt.Printf("L%d:\n", l)
+		fmt.Printf("MOV R%d R%d\n", target, protected+1)
+		fmt.Printf("CMP R%d R%d\n", protected+2, args[0])
+		fmt.Printf("BEQ L%d\n", l+1)
+		represent_function(protected+1, protected+2, append([]byte{protected+2, target}, args...))
+		fmt.Printf("ADD R%d 1\n", protected+2)
+		fmt.Printf("B L%d\n", l)
+		fmt.Printf("L%d:\n", l+1)
+	case identifier
 	}
-}*/
+}
