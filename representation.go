@@ -15,9 +15,6 @@ var label_table map[byte]byte
 func represent() {
 	labels_used = 0
 	label_table = make(map[byte]byte)
-	fmt.Println("section .text")
-	fmt.Println("\tglobal _start")
-	fmt.Println("_start:")
 	L: for {
 		//each iteration of this loop processes one line of code
 		switch t_to_r.get() {
@@ -29,11 +26,13 @@ func represent() {
 			//next we accumulate the instructions in the function definition
 			ar := t_to_r.get()
 			args := make([]byte, 0)
-			for i := byte(1); i <= ar; i++ {
-				fmt.Printf("POP R%d\n", i)
-				args = append(args, i)
+			for i := byte(0); i < ar; i++ {
+				fmt.Printf("LOAD R%d [STACK+%d]\n", i+1, ar-i-1)
+				args = append(args, i+1)
 			}
+			fmt.Printf("ADD STACK %d\n", ar)
 			represent_function(0, ar, args)
+			fmt.Printf("RET\n")
 		case end:
 			break L
 		}
@@ -59,7 +58,20 @@ func represent_function(target byte, protected byte, args []byte) {
 	case proj:
 		fmt.Printf("MOV R%d R%d\n", target, args[t_to_r.get()])
 	case comp:
-		fmt.Printf("broken\n")
+		n := t_to_r.get()
+		//new_args are the arguements of the top-level function
+		new_args := make([]byte, 0)
+		for i := byte(0); i < n; i++ {
+			if t_to_r.get() == proj {
+				new_args = append(new_args, args[t_to_r.get()])
+			} else {
+				t_to_r.undo()
+				protected++
+				new_args = append(new_args, protected)
+				represent_function(protected, protected, args)
+			}
+		}
+		represent_function(target, protected, new_args)
 	case min:
 		fmt.Printf("MOV R%d 0\n", target)
 		//min requires a loop
@@ -67,7 +79,7 @@ func represent_function(target byte, protected byte, args []byte) {
 		//allocate 2 labels, l and l+1
 		l := labels_used
 		labels_used+=2
-		fmt.Printf("L%d:\n", l)
+		fmt.Printf("L%d: ", l)
 		represent_function(protected+1, protected+1, append([]byte{target}, args...))
 		fmt.Printf("CMP R%d 0\n", protected+1)
 		fmt.Printf("BEQ L%d\n", l+1)
@@ -88,6 +100,30 @@ func represent_function(target byte, protected byte, args []byte) {
 		fmt.Printf("ADD R%d 1\n", protected+2)
 		fmt.Printf("B L%d\n", l)
 		fmt.Printf("L%d:\n", l+1)
-	case identifier
+	case identifier:
+		fmt.Printf("SUB STACK %d\n", protected+1+byte(len(args)))
+		for i := byte(0); i <= protected; i++ {
+			if i < target {
+				fmt.Printf("STR [STACK+%d] R%d\n", protected+byte(len(args))-i, i)
+			} else if i > target {
+				fmt.Printf("STR [STACK+%d] R%d\n", protected+1+byte(len(args))-i, i)				
+			}
+		}
+		fmt.Printf("STR [STACK+%d] PC\n", len(args))
+		for i, r := range args {
+			fmt.Printf("STR [STACK+%d] R%d\n", len(args)-1-i, r)
+		}
+		fmt.Printf("B L%d\n", label_table[t_to_r.get()])
+		if target != 0 {
+			fmt.Printf("MOV R%d R0\n", target)
+		}
+		for i := byte(0); i <= protected; i++ {
+			if i < target {
+				fmt.Printf("LOAD R%d [STACK+%d]\n", i, protected-i)
+			} else if i > target {
+				fmt.Printf("LOAD R%d [STACK+%d]\n", i, protected+1-i)
+			}
+		}
+		fmt.Printf("ADD STACK %d\n", protected+1)
 	}
 }
