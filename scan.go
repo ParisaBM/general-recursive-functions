@@ -1,6 +1,5 @@
 package main
 
-//import "fmt"
 import "strconv"
 
 func is_alphabetic(c byte) bool {

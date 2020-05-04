@@ -52,7 +52,7 @@ func merge(ar0, ar1 Arity) Arity {
 	}
 }
 
-func add(ar Arity, n int8) Arity {
+func add_arity(ar Arity, n int8) Arity {
 	//adds n to an Arity, handles edge cases
 	//n might be negative
 	ar.arity += n
@@ -136,10 +136,10 @@ func sem_function() Arity {
 		return ar
 	case min:
 		t_to_r.put(min)
-		return add(sem_function(), -1)
+		return add_arity(sem_function(), -1)
 	case rec:
 		t_to_r.put(rec)
-		return merge(add(sem_function(), 1), add(sem_function(), -1))
+		return merge(add_arity(sem_function(), 1), add_arity(sem_function(), -1))
 	case identifier:
 		t_to_r.put(identifier)
 		id := p_to_t.get()
