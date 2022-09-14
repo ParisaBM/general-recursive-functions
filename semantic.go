@@ -106,8 +106,8 @@ L:
 //reccursively semantically analyzes a function, returns the arity
 func sem_function() Arity {
 	switch p_to_t.get() {
-	case constant:
-		t_to_c.put(constant)
+	case const_t:
+		t_to_c.put(const_t)
 		t_to_c.put(p_to_t.get())
 		return Arity{0, false}
 	case suc:

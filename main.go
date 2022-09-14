@@ -12,7 +12,7 @@ import (
 //these are the signals the phases use to communicate with one another
 const (
 	//scanner and parser tokens
-	constant   = iota
+	const_t    = iota //_t short for token to seperate it from the go keyword
 	suc        = iota
 	proj       = iota
 	comp       = iota

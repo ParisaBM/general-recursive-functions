@@ -68,7 +68,7 @@ func scan_constant() {
 			buffer += string(b)
 		} else {
 			value, _ := strconv.Atoi(buffer)
-			s_to_p.put(constant)
+			s_to_p.put(const_t)
 			s_to_p.put(byte(value))
 			f_to_s.undo()
 			break

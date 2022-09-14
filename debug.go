@@ -24,7 +24,7 @@ L:
 	for {
 		//there's a bit of code to handle compound tokens, but otherwise it just displays each token
 		switch stream.get() {
-		case constant:
+		case const_t:
 			if n == 3 {
 				fmt.Printf("%d ", stream.get())
 				operands_left--

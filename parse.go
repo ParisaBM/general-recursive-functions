@@ -38,16 +38,16 @@ func function() {
 	//suc and constant are unchanged
 	case suc:
 		p_to_t.put(suc)
-	case constant:
-		p_to_t.put(constant)
+	case const_t:
+		p_to_t.put(const_t)
 		p_to_t.put(s_to_p.get())
 	//the constant tags after proj are deleted from the stream
 	//this is because they are redundant
 	case proj:
 		p_to_t.put(proj)
-		expect(constant)
+		expect(const_t)
 		p_to_t.put(s_to_p.get())
-		expect(constant)
+		expect(const_t)
 		p_to_t.put(s_to_p.get())
 	//comp expects a comma seperated list of atleast one function in brackets
 	case comp:
@@ -55,7 +55,7 @@ func function() {
 		p_to_t.delimit_buffering() //begin
 		expect(open_paren)
 		p_to_t.delimit_buffering() //begin
-		function() //this is the first function
+		function()                 //this is the first function
 		p_to_t.delimit_buffering() //end
 		//a composition is emitted with its arity so the sematic analyzer can deduce
 		//how many functions are being composed together
