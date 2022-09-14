@@ -18,8 +18,6 @@ func is_digit(c byte) bool {
 func scan() {
 	//the name table is used in screening, it maps each user defined function name to a unique integer
 	name_table := make(map[string]byte)
-	//main is always mapped to 0, this fact will be used in subsequent phases
-	name_table["main"] = 0
 	for {
 		b := f_to_s.get()
 		if b == '/' {
@@ -100,7 +98,6 @@ func scan_identifier(name_table map[string]byte) {
 			} else if buffer == "min" {
 				s_to_p.put(min)
 			} else {
-				//fmt.Println(buffer)
 				//if it is not a keyword, we handle it using the name_table
 				s_to_p.put(identifier)
 				n, ok := name_table[buffer]
@@ -110,6 +107,9 @@ func scan_identifier(name_table map[string]byte) {
 					//this will always result in unique values
 					n = byte(len(name_table))
 					name_table[buffer] = n
+					name_list_mutex.Lock()
+					name_list = append(name_list, buffer)
+					name_list_mutex.Unlock()
 				}
 				s_to_p.put(n)
 			}

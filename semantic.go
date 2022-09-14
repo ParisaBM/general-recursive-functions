@@ -76,23 +76,24 @@ func add_arity(ar Arity, n int8) Arity {
 //the arity of rec(F, G) is arity of F+1, the arity of F+2 must be compatible with the arity of G
 
 var arity_table map[byte]Arity
+
 func semantic() {
-	 arity_table = make(map[byte]Arity)
+	arity_table = make(map[byte]Arity)
 L:
 	for {
 		switch p_to_t.get() {
 		case identifier:
-			t_to_r.put(identifier)
+			t_to_c.put(identifier)
 			id := p_to_t.get()
-			t_to_r.put(id)
-			t_to_r.delimit_buffering() //begin
+			t_to_c.put(id)
+			t_to_c.delimit_buffering() //begin
 			ar := sem_function()
-			t_to_r.delimit_buffering() //end
-			t_to_r.put(byte(ar.arity))
-			t_to_r.put_buffer()
+			t_to_c.delimit_buffering() //end
+			t_to_c.put(byte(ar.arity))
+			t_to_c.put_buffer()
 			arity_table[id] = Arity{ar.arity, true}
 		case end:
-			t_to_r.put(end)
+			t_to_c.put(end)
 			break L
 		}
 	}
@@ -106,27 +107,27 @@ L:
 func sem_function() Arity {
 	switch p_to_t.get() {
 	case constant:
-		t_to_r.put(constant)
-		t_to_r.put(p_to_t.get())
+		t_to_c.put(constant)
+		t_to_c.put(p_to_t.get())
 		return Arity{0, false}
 	case suc:
-		t_to_r.put(suc)
+		t_to_c.put(suc)
 		return Arity{1, true}
 	case proj:
-		t_to_r.put(proj)
+		t_to_c.put(proj)
 		//recieving proj n m
 		n := p_to_t.get()
 		m := p_to_t.get()
-		t_to_r.put(n) //m is not needed by the next phase
+		t_to_c.put(n) //m is not needed by the next phase
 		return Arity{int8(m), true}
 	case comp:
-		t_to_r.put(comp)
+		t_to_c.put(comp)
 		//n is the arity of the top level function
 		//for example in comp(F0, F1, ...Fn), n is the arity of F0
 		n := p_to_t.get()
-		t_to_r.put(n)
+		t_to_c.put(n)
 		//the arity of the whole thing is the intersection of F1, ... Fn
-		ar := Arity{0, false}		
+		ar := Arity{0, false}
 		for i := byte(0); i < n; i++ {
 			ar = merge(ar, sem_function())
 		}
@@ -135,15 +136,15 @@ func sem_function() Arity {
 		merge(Arity{int8(n), true}, sem_function())
 		return ar
 	case min:
-		t_to_r.put(min)
+		t_to_c.put(min)
 		return add_arity(sem_function(), -1)
 	case rec:
-		t_to_r.put(rec)
+		t_to_c.put(rec)
 		return merge(add_arity(sem_function(), 1), add_arity(sem_function(), -1))
 	case identifier:
-		t_to_r.put(identifier)
+		t_to_c.put(identifier)
 		id := p_to_t.get()
-		t_to_r.put(id)
+		t_to_c.put(id)
 		return arity_table[id]
 	default:
 		panic("unable to match")

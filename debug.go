@@ -12,9 +12,7 @@ func debug(n int) {
 	case 1:
 		stream = p_to_t
 	case 2:
-		stream = t_to_r
-	case 3:
-		stream = r_to_c
+		stream = t_to_c
 	}
 	//next_id is used to determine if a particular identifier is a declaration
 	//it is used when debugging the semantic phase
