@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
@@ -12,7 +13,7 @@ import (
 
 var func_list []*ir.Func
 
-func code_gen() {
+func code_gen(output_file_name string) {
 	u32 := types.I32
 	m := ir.NewModule()
 	for {
@@ -42,7 +43,11 @@ func code_gen() {
 			entry.NewRet(ret)
 			func_list = append(func_list, f)
 		case end:
-			fmt.Println(m)
+			file, err := os.Create(output_file_name)
+			if err != nil {
+				println(err)
+			}
+			file.WriteString(fmt.Sprint(m))
 			c_to_e.put(0)
 			return
 		default:
@@ -51,13 +56,13 @@ func code_gen() {
 	}
 }
 
-//represent recursively generates the llvm ir for a single function definition
-//these instructions all get added to the first parameter f
-//b is the current active block
-//b is doubly indirect so that instances of represent can update it, and when they do other instances further down in
-//the stack can add instructions to the block where it was left off
-//params are the parameters to that sub function
-//what gets returned is either a register or constant with the result of that function
+// represent recursively generates the llvm ir for a single function definition
+// these instructions all get added to the first parameter f
+// b is the current active block
+// b is doubly indirect so that instances of represent can update it, and when they do other instances further down in
+// the stack can add instructions to the block where it was left off
+// params are the parameters to that sub function
+// what gets returned is either a register or constant with the result of that function
 func represent(f *ir.Func, b **ir.Block, params []value.Value) value.Value {
 	switch t_to_c.get() {
 	case const_t:

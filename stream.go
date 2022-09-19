@@ -55,14 +55,14 @@ import (
 //put() adds an element to the buffer on top of the stack, unless its empty in which case it emits it
 //note that begin_buffering() and end_buffering() are actually the same thing
 //in our implementation we just have 1 function delimit_buffering()
-//it is accompanied by a comment explaining which one it everywhere it is used 
+//it is accompanied by a comment explaining which one it everywhere it is used
 //the reciever thankfully is much simpler
 //streams allow the reciever to peek at the input
 //get() recieves a message from the sender
 //undo() puts the last message back so that the next time get() is called it will get the same thing again
 //undo() can't be called multiple times in a row
 
-//ch is the channel that this is built atop
+// ch is the channel that this is built atop
 type Stream struct {
 	ch           chan byte
 	buffer_stack []List
@@ -74,8 +74,9 @@ func new_stream() Stream {
 	return Stream{make(chan byte), make([]List, 0), 0, false}
 }
 
-//this function wasn't descibed in the long sequence of comments above
-//it takes the contents of a file, makes a new stream, and sends the file down the stream
+// this function wasn't described in the long sequence of comments above
+// it takes the contents of a file, makes a new stream, and sends the file down the stream
+// it also closes the file
 func from_file(file *os.File) Stream {
 	s := new_stream()
 	go func() {
@@ -85,6 +86,7 @@ func from_file(file *os.File) Stream {
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					s.put('\x00')
+					file.Close()
 				} else {
 					panic(err)
 				}
@@ -138,8 +140,8 @@ func (s *Stream) undo() {
 	s.buf_in_use = true
 }
 
-//here are the list methods used earlier
-//these should all be fairly standard
+// here are the list methods used earlier
+// these should all be fairly standard
 type Node struct {
 	data byte
 	next *Node
@@ -164,8 +166,7 @@ func (l *List) push(b byte) {
 	}
 }
 
-
-//adds the contents of l1 to the front of l0
+// adds the contents of l1 to the front of l0
 func (l0 *List) prepend(l1 List) {
 	//if l1 is empty nothing has to happen
 	if l1.tail != nil {
@@ -177,8 +178,8 @@ func (l0 *List) prepend(l1 List) {
 	}
 }
 
-//adds the contents of l1 after l0
-//the name append is taken
+// adds the contents of l1 after l0
+// the name append is taken
 func (l0 *List) list_append(l1 List) {
 	l1.prepend(*l0)
 	*l0 = l1
