@@ -1,6 +1,7 @@
 #include <stdio.h>
-void main() {
-    for(int i=0; i<5; i++) {
-        printf("%d\n", i);
-    }
+#include <stdlib.h>
+
+void main(int argc, char *argv[]) {
+    int x = atoi(argv[1]);
+    printf("%d\n", x);
 }

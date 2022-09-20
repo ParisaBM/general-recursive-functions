@@ -6,22 +6,26 @@ func parse() {
 	//the syntax of this language is highly regular
 	//each line consists of code contains a definition
 	//each iteration of this loop consumes one definition or a blank line, or the end of the file
-L:
+	//since functions are meant to be on seperate lines, accepting_function keeps track of when a new line has started
+	accepting_function := true
 	for {
 		switch s_to_p.get() {
 		case identifier:
 			//the general case is: identifer id equals function newline
+			if !accepting_function {
+				panic("multiple functions on the same line")
+			}
 			p_to_t.put(identifier)
 			p_to_t.put(s_to_p.get())
 			expect(equals)
 			function()
-			expect(newline)
-			p_to_t.put(newline)
+			accepting_function = false
 		case newline:
 			p_to_t.put(newline)
+			accepting_function = true
 		case end:
 			p_to_t.put(end)
-			break L
+			return
 		default:
 			//the errors that just say "error" are placeholders
 			fmt.Println("error")

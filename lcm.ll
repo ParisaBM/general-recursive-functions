@@ -1,3 +1,7 @@
+declare i32 @printf(i8* %0, ...)
+
+declare i32 @atoi(...)
+
 define i32 @pred(i32 %p0) {
 0:
 	%1 = alloca i32
@@ -125,25 +129,31 @@ define i32 @factors(i32 %p0, i32 %p1) {
 	ret i32 %3
 }
 
-define i32 @main(i32 %p0, i32 %p1) {
+define i32 @main(i32 %argc, i8** %argv) {
 0:
-	%1 = alloca i32
-	store i32 -1, i32* %1
-	br label %2
+	%1 = getelementptr i8*, i8** %argv, i32 0
+	%2 = load i8*, i8** %1
+	%3 = call i32 (...) @atoi(i8* %2)
+	%4 = getelementptr i8*, i8** %argv, i32 1
+	%5 = load i8*, i8** %4
+	%6 = call i32 (...) @atoi(i8* %5)
+	%7 = alloca i32
+	store i32 -1, i32* %7
+	br label %8
 
-2:
-	%3 = load i32, i32* %1
-	%4 = add i32 %3, 1
-	store i32 %4, i32* %1
-	%5 = add i32 %4, 1
-	%6 = call i32 @factors(i32 %5, i32 %p0)
-	%7 = add i32 %4, 1
-	%8 = call i32 @factors(i32 %7, i32 %p1)
-	%9 = call i32 @add(i32 %6, i32 %8)
-	%10 = icmp eq i32 %9, 0
-	br i1 %10, label %11, label %2
+8:
+	%9 = load i32, i32* %7
+	%10 = add i32 %9, 1
+	store i32 %10, i32* %7
+	%11 = add i32 %10, 1
+	%12 = call i32 @factors(i32 %11, i32 %3)
+	%13 = add i32 %10, 1
+	%14 = call i32 @factors(i32 %13, i32 %6)
+	%15 = call i32 @add(i32 %12, i32 %14)
+	%16 = icmp eq i32 %15, 0
+	br i1 %16, label %17, label %8
 
-11:
-	%12 = call i32 @pred(i32 %4)
-	ret i32 %12
+17:
+	%18 = call i32 @pred(i32 %10)
+	ret i32 %18
 }

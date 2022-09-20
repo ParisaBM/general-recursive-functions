@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/llir/irutil"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
@@ -14,33 +15,57 @@ import (
 var func_list []*ir.Func
 
 func code_gen(output_file_name string) {
-	u32 := types.I32
 	m := ir.NewModule()
+	printf := m.NewFunc("printf", types.I32, ir.NewParam("", types.NewPointer(types.I8)))
+	printf.Sig.Variadic = true
+	atoi := m.NewFunc("atoi", types.I32)
+	atoi.Sig.Variadic = true
+	format_string := m.NewGlobalDef("fstr", irutil.NewCString("%d\n"))
 	for {
 		//t_to_c should consist of identifier with their function definitions then an end token
 		//anything else means something's gone wrong
 		switch t_to_c.get() {
 		case identifier:
 			id := t_to_c.get()
-			param_count := t_to_c.get()
-			params := make([]*ir.Param, 0)
-			for i := byte(0); i < param_count; i += 1 {
-				params = append(params, ir.NewParam("p"+fmt.Sprint(i), u32))
-			}
 			name_list_mutex.Lock()
-			f := m.NewFunc(name_list[id], u32, params...)
+			function_name := name_list[id]
 			name_list_mutex.Unlock()
-			//the params variable uses a list of ir.Param values
-			//this type is only used for function parameter values
-			//however every value saved in a register implements the value.Value interface
-			//thus we convert to this interface to obtain values we can treat generically as registers
+			param_count := t_to_c.get()
 			param_registers := make([]value.Value, 0)
-			for _, r := range params {
-				param_registers = append(param_registers, r)
+			var f *ir.Func
+			if function_name == "main" {
+				argc := ir.NewParam("argc", types.I32)
+				argv := ir.NewParam("argv", types.NewPointer(types.NewPointer(types.I8)))
+				f = m.NewFunc("main", types.Void, argc, argv)
+				entry := f.NewBlock("")
+				for i := 0; i < int(param_count); i += 1 {
+					param_string_pointer := entry.NewGetElementPtr(types.NewPointer(types.I8), argv, constant.NewInt(types.I32, int64(i+1)))
+					param_string := entry.NewLoad(types.NewPointer(types.I8), param_string_pointer)
+					param_registers = append(param_registers, entry.NewCall(atoi, param_string))
+				}
+				ret := represent(f, &entry, param_registers)
+				format_string_pointer := entry.NewGetElementPtr(types.NewArray(4, types.I8), format_string, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
+				//  := entry.NewGetElementPtr(types.NewPointer(types.I8), format_string, constant.NewInt(types.I32, 0))
+				entry.NewCall(printf, format_string_pointer, ret)
+				entry.NewRet(nil)
+			} else {
+				params := make([]*ir.Param, 0)
+				for i := byte(0); i < param_count; i += 1 {
+					params = append(params, ir.NewParam("p"+fmt.Sprint(i), types.I32))
+				}
+				f = m.NewFunc(function_name, types.I32, params...)
+				//the params variable uses a list of ir.Param values
+				//this type is only used for function parameter values
+				//however every value saved in a register implements the value.Value interface
+				//thus we convert to this interface to obtain values we can treat generically as registers
+				param_registers := make([]value.Value, 0)
+				for _, r := range params {
+					param_registers = append(param_registers, r)
+				}
+				entry := f.NewBlock("")
+				ret := represent(f, &entry, param_registers)
+				entry.NewRet(ret)
 			}
-			entry := f.NewBlock("")
-			ret := represent(f, &entry, param_registers)
-			entry.NewRet(ret)
 			func_list = append(func_list, f)
 		case end:
 			file, err := os.Create(output_file_name)
