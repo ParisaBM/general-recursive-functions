@@ -1,0 +1,3 @@
+//doubles the input
+add2 = comp(suc, suc)
+main = rec(0, comp(add2, proj 1 2))
