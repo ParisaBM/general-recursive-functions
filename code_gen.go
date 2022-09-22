@@ -123,31 +123,23 @@ func represent(f *ir.Func, b **ir.Block, params []value.Value) value.Value {
 		loop_exit := f.NewBlock("")
 
 		//setup code i.e. b code
-		counter_pointer := (*b).NewAlloca(types.I32)
-		(*b).NewStore(constant.NewInt(types.I32, 0), counter_pointer)
-		current_value_pointer := (*b).NewAlloca(types.I32)
-		current_value := represent(f, b, params[1:])
-		(*b).NewStore(current_value, current_value_pointer)
+		initial_value := represent(f, b, params[1:])
 		(*b).NewBr(loop_validate)
 
 		//loop_validate code
-		counter := loop_validate.NewLoad(types.I32, counter_pointer)
+		current_value := loop_validate.NewPhi(ir.NewIncoming(initial_value, *b))
+		counter := loop_validate.NewPhi(ir.NewIncoming(constant.NewInt(types.I32, 0), *b))
 		stop_condition := loop_validate.NewICmp(enum.IPredULT, counter, params[0])
 		loop_validate.NewCondBr(stop_condition, loop_body, loop_exit)
 
 		//loop_body code
-		current_value = loop_body.NewLoad(types.I32, current_value_pointer)
-		current_value = represent(f, &loop_body, append([]value.Value{counter, current_value}, params[1:]...))
-		if current_value == counter {
-			//this is somewhat of a corner case
-			//if these are same counter will get updated once more which will be an issue
-			current_value = loop_body.NewAdd(counter, constant.NewInt(types.I32, 0))
-		}
-		loop_body.NewStore(current_value, current_value_pointer)
-		//note that the old counter value is still in a register
-		incremented_counter := loop_body.NewAdd(counter, constant.NewInt(types.I32, 1))
-		loop_body.NewStore(incremented_counter, counter_pointer)
+		next_value := represent(f, &loop_body, append([]value.Value{counter, current_value}, params[1:]...))
+		next_counter := loop_body.NewAdd(counter, constant.NewInt(types.I32, 1))
 		loop_body.NewBr(loop_validate)
+
+		//here we can do those phi instruction from earlier
+		current_value.Incs = append(current_value.Incs, ir.NewIncoming(next_value, loop_body))
+		counter.Incs = append(counter.Incs, ir.NewIncoming(next_counter, loop_body))
 
 		//loop_exit is where we continue from
 		*b = loop_exit
@@ -161,23 +153,20 @@ func represent(f *ir.Func, b **ir.Block, params []value.Value) value.Value {
 		loop_body := f.NewBlock("")
 		loop_exit := f.NewBlock("")
 
-		//setup code
-		counter_pointer := (*b).NewAlloca(types.I32)
-		//we initialize the counter to -1 so we can increment it at the start of the loop
-		(*b).NewStore(constant.NewInt(types.I32, -1), counter_pointer)
 		(*b).NewBr(loop_body)
 
 		//loop_body code
-		counter := loop_body.NewLoad(types.I32, counter_pointer)
-		incremented_counter := loop_body.NewAdd(counter, constant.NewInt(types.I32, 1))
-		loop_body.NewStore(incremented_counter, counter_pointer)
-		result := represent(f, &loop_body, append([]value.Value{incremented_counter}, params...))
+		counter := loop_body.NewPhi(ir.NewIncoming(constant.NewInt(types.I32, 0), *b))
+		result := represent(f, &loop_body, append([]value.Value{counter}, params...))
+		next_counter := loop_body.NewAdd(counter, constant.NewInt(types.I32, 1))
 		exit_condition := loop_body.NewICmp(enum.IPredEQ, result, constant.NewInt(types.I32, 0))
 		loop_body.NewCondBr(exit_condition, loop_exit, loop_body)
 
+		counter.Incs = append(counter.Incs, ir.NewIncoming(next_counter, loop_body))
+
 		*b = loop_exit
 
-		return incremented_counter
+		return counter
 	case identifier:
 		id := t_to_c.get()
 		return (*b).NewCall(func_list[id], params...)
