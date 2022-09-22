@@ -15,7 +15,7 @@ func parse() {
 			if !acceptingFunction {
 				panic("multiple functions on the same line")
 			}
-			pToT.put(identifier)
+			pToT.put(definition)
 			pToT.put(sToP.get())
 			expect(equals)
 			function()

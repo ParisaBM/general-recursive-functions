@@ -25,7 +25,7 @@ func codeGen(outputFileName string) {
 		// tToC should consist of identifier with their function definitions then an end token
 		// anything else means something's gone wrong
 		switch tToC.get() {
-		case identifier:
+		case definition:
 			id := tToC.get()
 			nameListMutex.Lock()
 			functionName := nameList[id]

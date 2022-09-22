@@ -12,7 +12,6 @@ import (
 
 // these are the signals the phases use to communicate with one another
 const (
-	// scanner and parser tokens
 	constT     = iota // T short for token to seperate it from the go keyword
 	suc        = iota
 	proj       = iota
@@ -20,11 +19,12 @@ const (
 	min        = iota
 	rec        = iota
 	identifier = iota
+	definition = iota
 	equals     = iota
 	newline    = iota
 	err        = iota
 	end        = iota
-	// scanner tokens
+	// scanner only tokens
 	openParen  = iota
 	closeParen = iota
 	comma      = iota

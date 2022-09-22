@@ -32,7 +32,7 @@ L:
 			}
 		case comp:
 			println("comp")
-			// in the parser, comp is followed by its arity
+			// in the parser and semantic analyzer, comp is followed by its arity
 			if n == 1 || n == 2 {
 				println(stream.get())
 			}
@@ -42,8 +42,14 @@ L:
 			println("rec")
 		case identifier:
 			println("identifier")
-			id := stream.get()
-			println(id)
+			println(stream.get())
+		case definition:
+			println("define")
+			println(stream.get())
+			// in the semantic analyzer, a definition is followed by its arity
+			if n == 2 {
+				println(stream.get())
+			}
 		case equals:
 			println("equals")
 		case openParen:

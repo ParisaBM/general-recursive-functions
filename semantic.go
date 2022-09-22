@@ -82,8 +82,8 @@ func semantic() {
 L:
 	for {
 		switch pToT.get() {
-		case identifier:
-			tToC.put(identifier)
+		case definition:
+			tToC.put(definition)
 			id := pToT.get()
 			tToC.put(id)
 			tToC.delimitBuffering() // begin
