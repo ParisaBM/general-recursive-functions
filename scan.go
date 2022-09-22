@@ -2,45 +2,45 @@ package main
 
 import "strconv"
 
-func is_alphabetic(c byte) bool {
-	//returns true if the input is a letter and false otherwise
+func isAlphabetic(c byte) bool {
+	// returns true if the input is a letter and false otherwise
 	return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')
 }
 
-func is_digit(c byte) bool {
+func isDigit(c byte) bool {
 	return '0' <= c && c <= '9'
 }
 
-//scan() is the function that instantiates the scanner
-//it recieves its input from f_to_s and send output to s_to_p
-//the scanner consists of a loop that finds one token each iteration
-//it invokes auxiliary functions for more complex token
+// scan() is the function that instantiates the scanner
+// it recieves its input from fToS and send output to sToP
+// the scanner consists of a loop that finds one token each iteration
+// it invokes auxiliary functions for more complex token
 func scan() {
-	//the name table is used in screening, it maps each user defined function name to a unique integer
-	name_table := make(map[string]byte)
+	// the name table is used in screening, it maps each user defined function name to a unique integer
+	nameTable := make(map[string]byte)
 	for {
-		b := f_to_s.get()
+		b := fToS.get()
 		if b == '/' {
-			scan_comment()
-		} else if is_digit(b) {
-			f_to_s.undo()
-			scan_constant()
-		} else if is_alphabetic(b) || b == '_' {
-			f_to_s.undo()
-			scan_identifier(name_table)
+			scanComment()
+		} else if isDigit(b) {
+			fToS.undo()
+			scanConstant()
+		} else if isAlphabetic(b) || b == '_' {
+			fToS.undo()
+			scanIdentifier(nameTable)
 		} else if b == '(' {
-			s_to_p.put(open_paren)
+			sToP.put(openParen)
 		} else if b == ')' {
-			s_to_p.put(close_paren)
+			sToP.put(closeParen)
 		} else if b == '=' {
-			s_to_p.put(equals)
+			sToP.put(equals)
 		} else if b == '\n' {
-			s_to_p.put(newline)
+			sToP.put(newline)
 		} else if b == ',' {
-			s_to_p.put(comma)
+			sToP.put(comma)
 		} else if b == '\x00' {
-			//\0 signifies the end
-			s_to_p.put(end)
+			// \0 signifies the end
+			sToP.put(end)
 			break
 		} else if b != ' ' {
 			panic("unexpected symbol")
@@ -48,72 +48,71 @@ func scan() {
 	}
 }
 
-//scan_comment expects the second slash, then consumes everything up to,
-//but not include the next newline
-func scan_comment() {
-	if f_to_s.get() != '/' {
+// scanComment expects the second slash, then consumes everything up to,
+// but not include the next newline
+func scanComment() {
+	if fToS.get() != '/' {
 		panic("expected slash")
 	}
-	for f_to_s.get() != '\n' {
+	for fToS.get() != '\n' {
 	}
-	f_to_s.undo()
+	fToS.undo()
 }
 
-//scan_constant consumes a sequence of digits, then emits the resulting number
-func scan_constant() {
+// scanConstant consumes a sequence of digits, then emits the resulting number
+func scanConstant() {
 	buffer := ""
 	for {
-		b := f_to_s.get()
-		if is_digit(b) {
+		b := fToS.get()
+		if isDigit(b) {
 			buffer += string(b)
 		} else {
 			value, _ := strconv.Atoi(buffer)
-			s_to_p.put(const_t)
-			s_to_p.put(byte(value))
-			f_to_s.undo()
+			sToP.put(constT)
+			sToP.put(byte(value))
+			fToS.undo()
 			break
 		}
 	}
 }
 
-//scan_identifier consumes a sequence of letters digits and underscores
-//if the result is a keyword, that keyword's token is emmited
-//otherwise the name is mapped to a number using the name table and that is emmited
-func scan_identifier(name_table map[string]byte) {
+// scanIdentifier consumes a sequence of letters digits and underscores
+// if the result is a keyword, that keyword's token is emmited
+// otherwise the name is mapped to a number using the name table and that is emmited
+func scanIdentifier(nameTable map[string]byte) {
 	buffer := ""
 	for {
-		//fmt.Println(f_to_s.buf_in_use)
-		b := f_to_s.get()
-		if is_digit(b) || is_alphabetic(b) || b == '_' {
+		b := fToS.get()
+		if isDigit(b) || isAlphabetic(b) || b == '_' {
 			buffer += string(b)
 		} else {
 			if buffer == "suc" {
-				s_to_p.put(suc)
+				sToP.put(suc)
 			} else if buffer == "proj" {
-				s_to_p.put(proj)
+				sToP.put(proj)
 			} else if buffer == "rec" {
-				s_to_p.put(rec)
+				sToP.put(rec)
 			} else if buffer == "comp" {
-				s_to_p.put(comp)
+				sToP.put(comp)
 			} else if buffer == "min" {
-				s_to_p.put(min)
+				sToP.put(min)
 			} else {
-				//if it is not a keyword, we handle it using the name_table
-				s_to_p.put(identifier)
-				n, ok := name_table[buffer]
-				//ok is false if this is the first time the name is seen
+				// if it is not a keyword, we handle it using the nameTable
+				sToP.put(identifier)
+				n, ok := nameTable[buffer]
+				// ok is false if this is the first time the name is seen
 				if !ok {
-					//we assign the size of the table to the new identifier
-					//this will always result in unique values
-					n = byte(len(name_table))
-					name_table[buffer] = n
-					name_list_mutex.Lock()
-					name_list = append(name_list, buffer)
-					name_list_mutex.Unlock()
+					// we assign the size of the table to the new identifier
+					// this will always result in unique values
+					n = byte(len(nameTable))
+					nameTable[buffer] = n
+					nameListMutex.Lock()
+					nameList = append(nameList, buffer)
+					nameListMutex.Unlock()
 				}
-				s_to_p.put(n)
+				sToP.put(n)
 			}
-			f_to_s.undo()
+			fToS.undo()
 			break
 		}
 	}

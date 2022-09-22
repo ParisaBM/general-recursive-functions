@@ -3,114 +3,114 @@ package main
 import "fmt"
 
 func parse() {
-	//the syntax of this language is highly regular
-	//each line consists of code contains a definition
-	//each iteration of this loop consumes one definition or a blank line, or the end of the file
-	//since functions are meant to be on seperate lines, accepting_function keeps track of when a new line has started
-	accepting_function := true
+	// the syntax of this language is highly regular
+	// each line consists of code contains a definition
+	// each iteration of this loop consumes one definition or a blank line, or the end of the file
+	// since functions are meant to be on seperate lines, acceptingFunction keeps track of when a new line has started
+	acceptingFunction := true
 	for {
-		switch s_to_p.get() {
+		switch sToP.get() {
 		case identifier:
-			//the general case is: identifer id equals function newline
-			if !accepting_function {
+			// the general case is: identifer id equals function newline
+			if !acceptingFunction {
 				panic("multiple functions on the same line")
 			}
-			p_to_t.put(identifier)
-			p_to_t.put(s_to_p.get())
+			pToT.put(identifier)
+			pToT.put(sToP.get())
 			expect(equals)
 			function()
-			accepting_function = false
+			acceptingFunction = false
 		case newline:
-			p_to_t.put(newline)
-			accepting_function = true
+			pToT.put(newline)
+			acceptingFunction = true
 		case end:
-			p_to_t.put(end)
+			pToT.put(end)
 			return
 		default:
-			//the errors that just say "error" are placeholders
+			// the errors that just say "error" are placeholders
 			fmt.Println("error")
 		}
 	}
 }
 
 func function() {
-	//consumes one function from the input stream
-	//a function can be one of the primitives: suc, constant, proj
-	//one of the operators: comp, min, rec
-	//an identifer or a function enclosed in unnecessary brackets
-	switch s_to_p.get() {
-	//suc and constant are unchanged
+	// consumes one function from the input stream
+	// a function can be one of the primitives: suc, constant, proj
+	// one of the operators: comp, min, rec
+	// an identifer or a function enclosed in unnecessary brackets
+	switch sToP.get() {
+	// suc and constant are unchanged
 	case suc:
-		p_to_t.put(suc)
-	case const_t:
-		p_to_t.put(const_t)
-		p_to_t.put(s_to_p.get())
-	//the constant tags after proj are deleted from the stream
-	//this is because they are redundant
+		pToT.put(suc)
+	case constT:
+		pToT.put(constT)
+		pToT.put(sToP.get())
+	// the constant tags after proj are deleted from the stream
+	// this is because they are redundant
 	case proj:
-		p_to_t.put(proj)
-		expect(const_t)
-		p_to_t.put(s_to_p.get())
-		expect(const_t)
-		p_to_t.put(s_to_p.get())
-	//comp expects a comma seperated list of atleast one function in brackets
+		pToT.put(proj)
+		expect(constT)
+		pToT.put(sToP.get())
+		expect(constT)
+		pToT.put(sToP.get())
+	// comp expects a comma seperated list of atleast one function in brackets
 	case comp:
-		p_to_t.put(comp)
-		p_to_t.delimit_buffering() //begin
-		expect(open_paren)
-		p_to_t.delimit_buffering() //begin
-		function()                 //this is the first function
-		p_to_t.delimit_buffering() //end
-		//a composition is emitted with its arity so the sematic analyzer can deduce
-		//how many functions are being composed together
+		pToT.put(comp)
+		pToT.delimitBuffering() // begin
+		expect(openParen)
+		pToT.delimitBuffering() // begin
+		function()              // this is the first function
+		pToT.delimitBuffering() // end
+		// a composition is emitted with its arity so the sematic analyzer can deduce
+		// how many functions are being composed together
 		var arity byte = 0
 	L:
-		for { //this loop consumes all addition functions
-			switch s_to_p.get() {
-			//if there's a comma there's an addition function
+		for { // this loop consumes all addition functions
+			switch sToP.get() {
+			// if there's a comma there's an addition function
 			case comma:
 				function()
 				arity++
-			//if there's a close_paren, we've reached the end of the argument list
-			case close_paren:
+			// if there's a closeParen, we've reached the end of the argument list
+			case closeParen:
 				break L
 			default:
 				fmt.Println("error, bad end of comp")
 			}
 		}
-		p_to_t.put_buffer()
-		p_to_t.delimit_buffering() //end
-		p_to_t.put(arity)
-		p_to_t.put_buffer()
-	//min expects a function enclosed in brackets
+		pToT.putBuffer()
+		pToT.delimitBuffering() // end
+		pToT.put(arity)
+		pToT.putBuffer()
+	// min expects a function enclosed in brackets
 	case min:
-		p_to_t.put(min)
-		expect(open_paren)
+		pToT.put(min)
+		expect(openParen)
 		function()
-		expect(close_paren)
-	//rec expects 2 funtions enclosed in brackets
+		expect(closeParen)
+	// rec expects 2 funtions enclosed in brackets
 	case rec:
-		p_to_t.put(rec)
-		expect(open_paren)
+		pToT.put(rec)
+		expect(openParen)
 		function()
 		expect(comma)
 		function()
-		expect(close_paren)
-	//identifiers are unchanged
+		expect(closeParen)
+	// identifiers are unchanged
 	case identifier:
-		p_to_t.put(identifier)
-		p_to_t.put(s_to_p.get())
-	//this is the case of useless brackets
-	case open_paren:
+		pToT.put(identifier)
+		pToT.put(sToP.get())
+	// this is the case of useless brackets
+	case openParen:
 		function()
-		expect(close_paren)
+		expect(closeParen)
 	}
 }
 
 func expect(b byte) {
-	//expect consumes a single value from the input stream
-	//making sure it's value is the one given as the function parameter
-	if s_to_p.get() != b {
+	// expect consumes a single value from the input stream
+	// making sure it's value is the one given as the function parameter
+	if sToP.get() != b {
 		panic("expectation")
 	}
 }
