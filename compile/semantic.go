@@ -1,4 +1,4 @@
-package main
+package compile
 
 // the semantic phase must check that:
 // there is a main function

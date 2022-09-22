@@ -1,4 +1,4 @@
-package main
+package compile
 
 import (
 	"fmt"
@@ -14,13 +14,14 @@ import (
 
 var funcList []*ir.Func
 
-func codeGen(outputFileName string) {
+func codeGen(outputFile *os.File) {
 	m := ir.NewModule()
 	printf := m.NewFunc("printf", types.I32, ir.NewParam("", types.NewPointer(types.I8)))
 	printf.Sig.Variadic = true
 	atoi := m.NewFunc("atoi", types.I32)
 	atoi.Sig.Variadic = true
 	formatString := m.NewGlobalDef("fstr", irutil.NewCString("%d\n"))
+	funcList = make([]*ir.Func, 0)
 	for {
 		// tToC should consist of identifier with their function definitions then an end token
 		// anything else means something's gone wrong
@@ -36,7 +37,7 @@ func codeGen(outputFileName string) {
 			if functionName == "main" {
 				argc := ir.NewParam("argc", types.I32)
 				argv := ir.NewParam("argv", types.NewPointer(types.NewPointer(types.I8)))
-				f = m.NewFunc("main", types.Void, argc, argv)
+				f = m.NewFunc("main", types.I32, argc, argv)
 				entry := f.NewBlock("")
 				for i := 0; i < int(paramCount); i += 1 {
 					paramStringPointer := entry.NewGetElementPtr(types.NewPointer(types.I8), argv, constant.NewInt(types.I32, int64(i+1)))
@@ -46,7 +47,7 @@ func codeGen(outputFileName string) {
 				ret := represent(f, &entry, paramRegisters)
 				formatStringPointer := entry.NewGetElementPtr(types.NewArray(4, types.I8), formatString, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
 				entry.NewCall(printf, formatStringPointer, ret)
-				entry.NewRet(nil)
+				entry.NewRet(constant.NewInt(types.I32, 0))
 			} else {
 				params := make([]*ir.Param, 0)
 				for i := byte(0); i < paramCount; i += 1 {
@@ -67,12 +68,7 @@ func codeGen(outputFileName string) {
 			}
 			funcList = append(funcList, f)
 		case end:
-			file, err := os.Create(outputFileName)
-			if err != nil {
-				println(err)
-			}
-			file.WriteString(fmt.Sprint(m))
-			cToE.put(0)
+			outputFile.WriteString(fmt.Sprint(m))
 			return
 		default:
 			panic("invalid token in tToC")

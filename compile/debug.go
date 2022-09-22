@@ -1,4 +1,4 @@
-package main
+package compile
 
 func debug(n int) {
 	// debug outputs the result of the nth phase
