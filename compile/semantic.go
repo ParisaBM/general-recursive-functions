@@ -29,7 +29,7 @@ func max(x, y int8) int8 {
 	return y
 }
 
-func merge(ar0, ar1 Arity) Arity {
+func (ar0 Arity) merge(ar1 Arity) Arity {
 	// sometimes calls to merge don't actually use the returned value
 	// instead it's just to check compatibility
 	if ar0.known && ar1.known {
@@ -52,7 +52,7 @@ func merge(ar0, ar1 Arity) Arity {
 	}
 }
 
-func addArity(ar Arity, n int8) Arity {
+func (ar Arity) addArity(n int8) Arity {
 	// adds n to an Arity, handles edge cases
 	// n might be negative
 	ar.arity += n
@@ -129,18 +129,18 @@ func semFunction() Arity {
 		// the arity of the whole thing is the intersection of F1, ... Fn
 		ar := Arity{0, false}
 		for i := byte(0); i < n; i++ {
-			ar = merge(ar, semFunction())
+			ar = ar.merge(semFunction())
 		}
 		// the result of this merge isn't used in any way
 		// its just to make sure its correct
-		merge(Arity{int8(n), true}, semFunction())
+		Arity{int8(n), true}.merge(semFunction())
 		return ar
 	case min:
 		tToC.put(min)
-		return addArity(semFunction(), -1)
+		return semFunction().addArity(-1)
 	case rec:
 		tToC.put(rec)
-		return merge(addArity(semFunction(), 1), addArity(semFunction(), -1))
+		return semFunction().addArity(1).merge(semFunction().addArity(-1))
 	case identifier:
 		tToC.put(identifier)
 		id := pToT.get()

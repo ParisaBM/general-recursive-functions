@@ -8,7 +8,15 @@ import (
 	"testing"
 )
 
+// TestCompile runs a series of tests to ensure each grf program can be compiled, ran, and gives the right outputs
+// first it's compiled to llvm ir using the compile package we've written, then assembled with clang, then ran
+// if any of these steps fail the test is a failure
+// any files generated get cleaned up before the process finishes
 func TestCompile(t *testing.T) {
+	// each test contains:
+	// the file name of the program WITHOUT the extension
+	// a list of inputs for the program, each represented as a list of ints
+	// a list of expected results, each as an integer
 	tests := []struct {
 		name    string
 		inputs  [][]int
@@ -20,6 +28,7 @@ func TestCompile(t *testing.T) {
 		{"lcm", [][]int{{1, 3}, {4, 6}, {5, 10}, {5, 6}}, []int{3, 12, 10, 30}},
 	}
 	for _, test := range tests {
+		// this first part generates the executable as a.out
 		inputFile, err := os.Open(test.name + ".grf")
 		if err != nil {
 			t.Fatal(err)
@@ -34,6 +43,7 @@ func TestCompile(t *testing.T) {
 			t.Fatal(err)
 		}
 		for i := range test.inputs {
+			// this inner loop runs the executable on each test case
 			args := make([]string, 0)
 			for _, x := range test.inputs[i] {
 				args = append(args, fmt.Sprint(x))

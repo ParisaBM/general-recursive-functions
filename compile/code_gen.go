@@ -12,10 +12,21 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
+// funcList maps function ids to their function objects in the module
 var funcList []*ir.Func
 
+// we'll use this as a more consice way to create constants
+// n will typically be either 0 or 1
+func CI(n byte) *constant.Int {
+	return constant.NewInt(types.I32, int64(n))
+}
+
+// code gen uses the llir package to add all the instructions of a program to a module,
+// then write the output to outputFile
 func codeGen(outputFile *os.File) {
 	m := ir.NewModule()
+	// since input is from command line, and output is to stdio
+	// we use some library functions to handle these
 	printf := m.NewFunc("printf", types.I32, ir.NewParam("", types.NewPointer(types.I8)))
 	printf.Sig.Variadic = true
 	atoi := m.NewFunc("atoi", types.I32)
@@ -35,19 +46,22 @@ func codeGen(outputFile *os.File) {
 			paramRegisters := make([]value.Value, 0)
 			var f *ir.Func
 			if functionName == "main" {
+				// this is the overhead we add to main to get and parse the command line arguements
 				argc := ir.NewParam("argc", types.I32)
 				argv := ir.NewParam("argv", types.NewPointer(types.NewPointer(types.I8)))
 				f = m.NewFunc("main", types.I32, argc, argv)
-				entry := f.NewBlock("")
-				for i := 0; i < int(paramCount); i += 1 {
-					paramStringPointer := entry.NewGetElementPtr(types.NewPointer(types.I8), argv, constant.NewInt(types.I32, int64(i+1)))
-					paramString := entry.NewLoad(types.NewPointer(types.I8), paramStringPointer)
-					paramRegisters = append(paramRegisters, entry.NewCall(atoi, paramString))
+				b := f.NewBlock("")
+				for i := byte(0); i < paramCount; i += 1 {
+					paramStringPointer := b.NewGetElementPtr(types.NewPointer(types.I8), argv, CI(i+1))
+					paramString := b.NewLoad(types.NewPointer(types.I8), paramStringPointer)
+					paramRegisters = append(paramRegisters, b.NewCall(atoi, paramString))
 				}
-				ret := represent(f, &entry, paramRegisters)
-				formatStringPointer := entry.NewGetElementPtr(types.NewArray(4, types.I8), formatString, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
-				entry.NewCall(printf, formatStringPointer, ret)
-				entry.NewRet(constant.NewInt(types.I32, 0))
+				ret := represent(f, paramRegisters)
+				// unlike other functions that return their results, main prints it and returns 0
+				b = f.Blocks[len(f.Blocks)-1]
+				formatStringPointer := b.NewGetElementPtr(types.NewArray(4, types.I8), formatString, CI(0), CI(0))
+				b.NewCall(printf, formatStringPointer, ret)
+				b.NewRet(CI(0))
 			} else {
 				params := make([]*ir.Param, 0)
 				for i := byte(0); i < paramCount; i += 1 {
@@ -62,9 +76,10 @@ func codeGen(outputFile *os.File) {
 				for _, r := range params {
 					paramRegisters = append(paramRegisters, r)
 				}
-				entry := f.NewBlock("")
-				ret := represent(f, &entry, paramRegisters)
-				entry.NewRet(ret)
+				f.NewBlock("")
+				ret := represent(f, paramRegisters)
+				b := f.Blocks[len(f.Blocks)-1]
+				b.NewRet(ret)
 			}
 			funcList = append(funcList, f)
 		case end:
@@ -78,19 +93,17 @@ func codeGen(outputFile *os.File) {
 
 // represent recursively generates the llvm ir for a single function definition
 // these instructions all get added to the first parameter f
-// b is the current active block
-// b is doubly indirect so that instances of represent can update it, and when they do other instances further down in
-// the stack can add instructions to the block where it was left off
-// params are the parameters to that sub function
 // what gets returned is either a register or constant with the result of that function
-func represent(f *ir.Func, b **ir.Block, params []value.Value) value.Value {
+// all instructions get added starting from the last block in f i.e. the active block
+func represent(f *ir.Func, params []value.Value) value.Value {
+	b := f.Blocks[len(f.Blocks)-1] // this finds the active block
 	switch tToC.get() {
 	case constT:
-		return constant.NewInt(types.I32, int64(tToC.get()))
+		return CI(tToC.get())
 	case proj:
 		return params[tToC.get()]
 	case suc:
-		newValue := (*b).NewAdd(params[0], constant.NewInt(types.I32, 1))
+		newValue := b.NewAdd(params[0], CI(1))
 		return newValue
 	case comp:
 		// suppose we have a composition like f(g(x), h(x))
@@ -100,9 +113,9 @@ func represent(f *ir.Func, b **ir.Block, params []value.Value) value.Value {
 		topLevelParams := make([]value.Value, 0)
 		numTopLevel := tToC.get()
 		for i := byte(0); i < numTopLevel; i += 1 {
-			topLevelParams = append(topLevelParams, represent(f, b, params))
+			topLevelParams = append(topLevelParams, represent(f, params))
 		}
-		return represent(f, b, topLevelParams)
+		return represent(f, topLevelParams)
 	case rec:
 		// to handle primitive recursion we create 3 blocks: looValidate, loopBody, and loopExit
 		// first we initialize currentValue, and counter to the base case function and 0 respectively
@@ -115,21 +128,20 @@ func represent(f *ir.Func, b **ir.Block, params []value.Value) value.Value {
 		// our blocks
 		loopValidate := f.NewBlock("")
 		loopBody := f.NewBlock("")
-		loopExit := f.NewBlock("")
+		// loop exit gets added at the end so loop body will be the active block
 
 		// setup code i.e. b code
-		initialValue := represent(f, b, params[1:])
-		(*b).NewBr(loopValidate)
+		initialValue := represent(f, params[1:])
+		b.NewBr(loopValidate)
 
 		// loopValidate code
-		currentValue := loopValidate.NewPhi(ir.NewIncoming(initialValue, *b))
-		counter := loopValidate.NewPhi(ir.NewIncoming(constant.NewInt(types.I32, 0), *b))
+		currentValue := loopValidate.NewPhi(ir.NewIncoming(initialValue, b))
+		counter := loopValidate.NewPhi(ir.NewIncoming(CI(0), b))
 		stopCondition := loopValidate.NewICmp(enum.IPredULT, counter, params[0])
-		loopValidate.NewCondBr(stopCondition, loopBody, loopExit)
 
 		// loopBody code
-		nextValue := represent(f, &loopBody, append([]value.Value{counter, currentValue}, params[1:]...))
-		nextCounter := loopBody.NewAdd(counter, constant.NewInt(types.I32, 1))
+		nextValue := represent(f, append([]value.Value{counter, currentValue}, params[1:]...))
+		nextCounter := loopBody.NewAdd(counter, CI(1))
 		loopBody.NewBr(loopValidate)
 
 		// here we can do those phi instruction from earlier
@@ -137,34 +149,31 @@ func represent(f *ir.Func, b **ir.Block, params []value.Value) value.Value {
 		counter.Incs = append(counter.Incs, ir.NewIncoming(nextCounter, loopBody))
 
 		// loopExit is where we continue from
-		*b = loopExit
+		loopExit := f.NewBlock("")
+		loopValidate.NewCondBr(stopCondition, loopBody, loopExit)
 
 		return currentValue
 	case min:
 		// this case is extremely similar to rec
 		// here we increment counter until result is 0
 
-		// our blocks
 		loopBody := f.NewBlock("")
-		loopExit := f.NewBlock("")
-
-		(*b).NewBr(loopBody)
+		b.NewBr(loopBody)
 
 		// loopBody code
-		counter := loopBody.NewPhi(ir.NewIncoming(constant.NewInt(types.I32, 0), *b))
-		result := represent(f, &loopBody, append([]value.Value{counter}, params...))
-		nextCounter := loopBody.NewAdd(counter, constant.NewInt(types.I32, 1))
-		exitCondition := loopBody.NewICmp(enum.IPredEQ, result, constant.NewInt(types.I32, 0))
+		counter := loopBody.NewPhi(ir.NewIncoming(CI(0), b))
+		result := represent(f, append([]value.Value{counter}, params...))
+		nextCounter := loopBody.NewAdd(counter, CI(1))
+		exitCondition := loopBody.NewICmp(enum.IPredEQ, result, CI(0))
+		loopExit := f.NewBlock("")
 		loopBody.NewCondBr(exitCondition, loopExit, loopBody)
 
 		counter.Incs = append(counter.Incs, ir.NewIncoming(nextCounter, loopBody))
 
-		*b = loopExit
-
 		return counter
 	case identifier:
 		id := tToC.get()
-		return (*b).NewCall(funcList[id], params...)
+		return b.NewCall(funcList[id], params...)
 	default:
 		panic("invalid token in tToC")
 	}
